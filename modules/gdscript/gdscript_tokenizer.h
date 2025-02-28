@@ -135,6 +135,9 @@ public:
 			VAR,
 			VOID,
 			YIELD,
+
+			DEFINE, // dua
+
 			// Punctuation
 			BRACKET_OPEN,
 			BRACKET_CLOSE,

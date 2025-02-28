@@ -33,6 +33,7 @@
 
 #include "editor/editor_help.h"
 #include "scene/gui/button.h"
+#include "scene/gui/check_button.h"
 #include "scene/gui/dialogs.h"
 #include "scene/gui/item_list.h"
 #include "scene/gui/line_edit.h"
@@ -48,12 +49,15 @@ class CreateDialog : public ConfirmationDialog {
 	};
 
 	LineEdit *search_box = nullptr;
+	CheckButton *desc_search_button = nullptr;
 	Tree *search_options = nullptr;
 
 	String base_type;
 	bool is_base_type_node = false;
 	String icon_fallback;
 	String preferred_search_result_type;
+
+	bool enable_desc_search = false;
 
 	Button *favorite = nullptr;
 	Vector<String> favorite_list;
@@ -89,6 +93,7 @@ class CreateDialog : public ConfirmationDialog {
 	virtual void cancel_pressed() override;
 
 	void _favorite_toggled();
+	void _desc_search_toggled(bool p_button_pressed);
 
 	void _history_selected(int p_idx);
 	void _favorite_selected();

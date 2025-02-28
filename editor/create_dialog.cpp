@@ -201,7 +201,11 @@ void CreateDialog::_update_search() {
 
 	for (List<StringName>::Element *I = type_list.front(); I; I = I->next()) {
 		StringName candidate = I->get();
-		if (empty_search || search_text.is_subsequence_ofn(candidate)) {
+
+		HashMap<String, DocData::ClassDoc>::Iterator class_doc = EditorHelp::get_doc_data()->class_list.find(candidate);
+		String desc_text = DTR(class_doc ? class_doc->value.brief_description : "");
+
+		if (empty_search || search_text.is_subsequence_ofn(candidate) || (enable_desc_search && search_text.is_subsequence_ofn(desc_text))) {
 			_add_type(candidate, ClassDB::class_exists(candidate) ? TypeCategory::CPP_TYPE : TypeCategory::OTHER_TYPE);
 
 			// Determine the best match for an non-empty search.
@@ -598,6 +602,11 @@ void CreateDialog::_favorite_toggled() {
 	_save_and_update_favorite_list();
 }
 
+void CreateDialog::_desc_search_toggled(bool p_button_pressed) {
+	enable_desc_search = p_button_pressed;
+	_update_search();
+}
+
 void CreateDialog::_history_selected(int p_idx) {
 	search_box->set_text(recent->get_item_text(p_idx).get_slicec(' ', 0));
 	favorites->deselect_all();
@@ -808,14 +817,19 @@ CreateDialog::CreateDialog() {
 	vbc->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 	hsc->add_child(vbc);
 
+	HBoxContainer *search_hb = memnew(HBoxContainer);
+
 	search_box = memnew(LineEdit);
 	search_box->set_clear_button_enabled(true);
 	search_box->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 	search_box->connect(SceneStringName(text_changed), callable_mp(this, &CreateDialog::_text_changed));
 	search_box->connect(SceneStringName(gui_input), callable_mp(this, &CreateDialog::_sbox_input));
-
-	HBoxContainer *search_hb = memnew(HBoxContainer);
 	search_hb->add_child(search_box);
+
+	desc_search_button = memnew(CheckButton);
+	desc_search_button->set_text(TTR("DescSearch"));
+	desc_search_button->connect(SceneStringName(toggled), callable_mp(this, &CreateDialog::_desc_search_toggled));
+	search_hb->add_child(desc_search_button);
 
 	favorite = memnew(Button);
 	favorite->set_toggle_mode(true);
