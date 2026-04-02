@@ -81,7 +81,6 @@ Size2 ScrollContainer::get_minimum_size() const {
 }
 
 void ScrollContainer::_cancel_drag() {
-	set_process_internal(false);
 	drag_touching_deaccel = false;
 	drag_touching = false;
 	drag_speed = Vector2();
@@ -89,10 +88,50 @@ void ScrollContainer::_cancel_drag() {
 	last_drag_accum = Vector2();
 	drag_from = Vector2();
 
+	if (!smooth_scrolling) {
+		set_process_internal(false);
+	}
+
 	if (beyond_deadzone) {
 		emit_signal(SNAME("scroll_ended"));
 		propagate_notification(NOTIFICATION_SCROLL_END);
 		beyond_deadzone = false;
+	}
+}
+
+void ScrollContainer::_smooth_scroll_towards(const Vector2 &p_target) {
+	target_scroll_position = Vector2(
+			CLAMP(p_target.x, h_scroll->get_min(), h_scroll->get_max() - h_scroll->get_page()),
+			CLAMP(p_target.y, v_scroll->get_min(), v_scroll->get_max() - v_scroll->get_page()));
+	smooth_scrolling = true;
+	set_process_internal(true);
+}
+
+void ScrollContainer::_animate_smooth_scroll(double p_delta) {
+	Vector2 current = Vector2(h_scroll->get_value(), v_scroll->get_value());
+	float factor = MIN(1.0f, (float)(smooth_scroll_speed * p_delta));
+	Vector2 new_pos = current.lerp(target_scroll_position, factor);
+
+	// Snap to target when close enough.
+	if (Math::abs(new_pos.x - target_scroll_position.x) < 0.5f) {
+		new_pos.x = target_scroll_position.x;
+	}
+	if (Math::abs(new_pos.y - target_scroll_position.y) < 0.5f) {
+		new_pos.y = target_scroll_position.y;
+	}
+
+	if (horizontal_scroll_mode != SCROLL_MODE_DISABLED) {
+		h_scroll->scroll_to(new_pos.x);
+	}
+	if (vertical_scroll_mode != SCROLL_MODE_DISABLED) {
+		v_scroll->scroll_to(new_pos.y);
+	}
+
+	if (new_pos.is_equal_approx(target_scroll_position)) {
+		smooth_scrolling = false;
+		if (!drag_touching && !scroll_on_drag_hover) {
+			set_process_internal(false);
+		}
 	}
 }
 
@@ -148,23 +187,25 @@ void ScrollContainer::gui_input(const Ref<InputEvent> &p_gui_input) {
 			bool scroll_value_modified = false;
 			bool swap_axes = scroll_horizontal_by_default != mb->is_shift_pressed();
 
+			Vector2 scroll_delta;
+
 			bool v_scroll_hidden = !v_scroll->is_visible() && vertical_scroll_mode != SCROLL_MODE_SHOW_NEVER;
 			if (mb->get_button_index() == MouseButton::WHEEL_UP) {
 				// By default, the vertical orientation takes precedence. This is an exception.
 				if ((h_scroll_enabled && swap_axes) || v_scroll_hidden) {
-					h_scroll->scroll(-h_scroll->get_page() / ScrollBar::PAGE_DIVISOR * mb->get_factor());
+					scroll_delta.x -= h_scroll->get_page() / ScrollBar::PAGE_DIVISOR * mb->get_factor();
 					scroll_value_modified = true;
 				} else if (v_scroll_enabled) {
-					v_scroll->scroll(-v_scroll->get_page() / ScrollBar::PAGE_DIVISOR * mb->get_factor());
+					scroll_delta.y -= v_scroll->get_page() / ScrollBar::PAGE_DIVISOR * mb->get_factor();
 					scroll_value_modified = true;
 				}
 			}
 			if (mb->get_button_index() == MouseButton::WHEEL_DOWN) {
 				if ((h_scroll_enabled && swap_axes) || v_scroll_hidden) {
-					h_scroll->scroll(h_scroll->get_page() / ScrollBar::PAGE_DIVISOR * mb->get_factor());
+					scroll_delta.x += h_scroll->get_page() / ScrollBar::PAGE_DIVISOR * mb->get_factor();
 					scroll_value_modified = true;
 				} else if (v_scroll_enabled) {
-					v_scroll->scroll(v_scroll->get_page() / ScrollBar::PAGE_DIVISOR * mb->get_factor());
+					scroll_delta.y += v_scroll->get_page() / ScrollBar::PAGE_DIVISOR * mb->get_factor();
 					scroll_value_modified = true;
 				}
 			}
@@ -173,26 +214,40 @@ void ScrollContainer::gui_input(const Ref<InputEvent> &p_gui_input) {
 			if (mb->get_button_index() == MouseButton::WHEEL_LEFT) {
 				// By default, the horizontal orientation takes precedence. This is an exception.
 				if ((v_scroll_enabled && swap_axes) || h_scroll_hidden) {
-					v_scroll->scroll(-v_scroll->get_page() / ScrollBar::PAGE_DIVISOR * mb->get_factor());
+					scroll_delta.y -= v_scroll->get_page() / ScrollBar::PAGE_DIVISOR * mb->get_factor();
 					scroll_value_modified = true;
 				} else if (h_scroll_enabled) {
-					h_scroll->scroll(-h_scroll->get_page() / ScrollBar::PAGE_DIVISOR * mb->get_factor());
+					scroll_delta.x -= h_scroll->get_page() / ScrollBar::PAGE_DIVISOR * mb->get_factor();
 					scroll_value_modified = true;
 				}
 			}
 			if (mb->get_button_index() == MouseButton::WHEEL_RIGHT) {
 				if ((v_scroll_enabled && swap_axes) || h_scroll_hidden) {
-					v_scroll->scroll(v_scroll->get_page() / ScrollBar::PAGE_DIVISOR * mb->get_factor());
+					scroll_delta.y += v_scroll->get_page() / ScrollBar::PAGE_DIVISOR * mb->get_factor();
 					scroll_value_modified = true;
 				} else if (h_scroll_enabled) {
-					h_scroll->scroll(h_scroll->get_page() / ScrollBar::PAGE_DIVISOR * mb->get_factor());
+					scroll_delta.x += h_scroll->get_page() / ScrollBar::PAGE_DIVISOR * mb->get_factor();
 					scroll_value_modified = true;
 				}
 			}
 
-			if (scroll_value_modified && (v_scroll->get_value() != prev_v_scroll || h_scroll->get_value() != prev_h_scroll)) {
-				accept_event(); // Accept event if scroll changed.
-				return;
+			if (scroll_value_modified) {
+				if (smooth_scroll_enabled) {
+					// Accumulate onto existing target if already scrolling.
+					if (!smooth_scrolling) {
+						target_scroll_position = Vector2(h_scroll->get_value(), v_scroll->get_value());
+					}
+					_smooth_scroll_towards(target_scroll_position + scroll_delta);
+					accept_event();
+					return;
+				} else {
+					h_scroll->scroll(scroll_delta.x);
+					v_scroll->scroll(scroll_delta.y);
+					if (v_scroll->get_value() != prev_v_scroll || h_scroll->get_value() != prev_h_scroll) {
+						accept_event(); // Accept event if scroll changed.
+						return;
+					}
+				}
 			}
 		}
 
@@ -272,15 +327,26 @@ void ScrollContainer::gui_input(const Ref<InputEvent> &p_gui_input) {
 
 	Ref<InputEventPanGesture> pan_gesture = p_gui_input;
 	if (pan_gesture.is_valid()) {
+		Vector2 scroll_delta;
 		if (h_scroll_enabled) {
-			h_scroll->scroll(h_scroll->get_page() * pan_gesture->get_delta().x / ScrollBar::PAGE_DIVISOR);
+			scroll_delta.x = h_scroll->get_page() * pan_gesture->get_delta().x / ScrollBar::PAGE_DIVISOR;
 		}
 		if (v_scroll_enabled) {
-			v_scroll->scroll(v_scroll->get_page() * pan_gesture->get_delta().y / ScrollBar::PAGE_DIVISOR);
+			scroll_delta.y = v_scroll->get_page() * pan_gesture->get_delta().y / ScrollBar::PAGE_DIVISOR;
 		}
 
-		if (v_scroll->get_value() != prev_v_scroll || h_scroll->get_value() != prev_h_scroll) {
-			accept_event(); // Accept event if scroll changed.
+		if (smooth_scroll_enabled) {
+			if (!smooth_scrolling) {
+				target_scroll_position = Vector2(h_scroll->get_value(), v_scroll->get_value());
+			}
+			_smooth_scroll_towards(target_scroll_position + scroll_delta);
+			accept_event();
+		} else {
+			h_scroll->scroll(scroll_delta.x);
+			v_scroll->scroll(scroll_delta.y);
+			if (v_scroll->get_value() != prev_v_scroll || h_scroll->get_value() != prev_h_scroll) {
+				accept_event(); // Accept event if scroll changed.
+			}
 		}
 		return;
 	}
@@ -339,8 +405,13 @@ void ScrollContainer::ensure_control_visible(Control *p_control) {
 	Vector2 diff = Vector2(MAX(MIN(other_rect.position.x - (is_layout_rtl() ? side_margin : 0.0f), 0.0f), other_rect.position.x + other_rect.size.x - size.x + (!is_layout_rtl() ? side_margin : 0.0f)),
 			MAX(MIN(other_rect.position.y, 0.0f), other_rect.position.y + other_rect.size.y - size.y + bottom_margin));
 
-	set_h_scroll(get_h_scroll() + diff.x);
-	set_v_scroll(get_v_scroll() + diff.y);
+	if (smooth_scroll_enabled) {
+		Vector2 target = Vector2(get_h_scroll() + diff.x, get_v_scroll() + diff.y);
+		_smooth_scroll_towards(target);
+	} else {
+		set_h_scroll(get_h_scroll() + diff.x);
+		set_v_scroll(get_v_scroll() + diff.y);
+	}
 }
 
 void ScrollContainer::_reposition_children() {
@@ -520,6 +591,10 @@ void ScrollContainer::_notification(int p_what) {
 				}
 			}
 
+			if (smooth_scrolling && !drag_touching) {
+				_animate_smooth_scroll(get_process_delta_time());
+			}
+
 			if (drag_touching) {
 				if (drag_touching_deaccel) {
 					Vector2 pos = Vector2(h_scroll->get_value(), v_scroll->get_value());
@@ -553,23 +628,38 @@ void ScrollContainer::_notification(int p_what) {
 						v_scroll->scroll_to(pos.y);
 					}
 
-					float sgn_x = drag_speed.x < 0 ? -1 : 1;
-					float val_x = Math::abs(drag_speed.x);
-					val_x -= 1000 * get_process_delta_time();
+					if (smooth_scroll_enabled) {
+						// Exponential decay: velocity *= e^(-friction * dt)
+						drag_speed *= Math::exp(-smooth_scroll_friction * (float)get_process_delta_time());
 
-					if (val_x < 0) {
-						turnoff_h = true;
+						if (Math::abs(drag_speed.x) < smooth_scroll_min_velocity) {
+							drag_speed.x = 0;
+							turnoff_h = true;
+						}
+						if (Math::abs(drag_speed.y) < smooth_scroll_min_velocity) {
+							drag_speed.y = 0;
+							turnoff_v = true;
+						}
+					} else {
+						// Original linear deceleration.
+						float sgn_x = drag_speed.x < 0 ? -1 : 1;
+						float val_x = Math::abs(drag_speed.x);
+						val_x -= 1000 * get_process_delta_time();
+
+						if (val_x < 0) {
+							turnoff_h = true;
+						}
+
+						float sgn_y = drag_speed.y < 0 ? -1 : 1;
+						float val_y = Math::abs(drag_speed.y);
+						val_y -= 1000 * get_process_delta_time();
+
+						if (val_y < 0) {
+							turnoff_v = true;
+						}
+
+						drag_speed = Vector2(sgn_x * val_x, sgn_y * val_y);
 					}
-
-					float sgn_y = drag_speed.y < 0 ? -1 : 1;
-					float val_y = Math::abs(drag_speed.y);
-					val_y -= 1000 * get_process_delta_time();
-
-					if (val_y < 0) {
-						turnoff_v = true;
-					}
-
-					drag_speed = Vector2(sgn_x * val_x, sgn_y * val_y);
 
 					if (turnoff_h && turnoff_v) {
 						_cancel_drag();
@@ -670,8 +760,13 @@ void ScrollContainer::_scroll_moved(float) {
 }
 
 void ScrollContainer::set_h_scroll(int p_pos) {
-	h_scroll->set_value(p_pos);
-	_cancel_drag();
+	if (smooth_scroll_enabled) {
+		Vector2 target = Vector2(p_pos, smooth_scrolling ? target_scroll_position.y : v_scroll->get_value());
+		_smooth_scroll_towards(target);
+	} else {
+		h_scroll->set_value(p_pos);
+		_cancel_drag();
+	}
 }
 
 int ScrollContainer::get_h_scroll() const {
@@ -679,8 +774,13 @@ int ScrollContainer::get_h_scroll() const {
 }
 
 void ScrollContainer::set_v_scroll(int p_pos) {
-	v_scroll->set_value(p_pos);
-	_cancel_drag();
+	if (smooth_scroll_enabled) {
+		Vector2 target = Vector2(smooth_scrolling ? target_scroll_position.x : h_scroll->get_value(), p_pos);
+		_smooth_scroll_towards(target);
+	} else {
+		v_scroll->set_value(p_pos);
+		_cancel_drag();
+	}
 }
 
 int ScrollContainer::get_v_scroll() const {
@@ -816,6 +916,33 @@ VScrollBar *ScrollContainer::get_v_scroll_bar() {
 	return v_scroll;
 }
 
+void ScrollContainer::set_smooth_scroll_enabled(bool p_enabled) {
+	smooth_scroll_enabled = p_enabled;
+	if (!p_enabled) {
+		smooth_scrolling = false;
+	}
+}
+
+bool ScrollContainer::is_smooth_scroll_enabled() const {
+	return smooth_scroll_enabled;
+}
+
+void ScrollContainer::set_smooth_scroll_speed(float p_speed) {
+	smooth_scroll_speed = p_speed;
+}
+
+float ScrollContainer::get_smooth_scroll_speed() const {
+	return smooth_scroll_speed;
+}
+
+void ScrollContainer::set_smooth_scroll_friction(float p_friction) {
+	smooth_scroll_friction = p_friction;
+}
+
+float ScrollContainer::get_smooth_scroll_friction() const {
+	return smooth_scroll_friction;
+}
+
 void ScrollContainer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_h_scroll", "value"), &ScrollContainer::set_h_scroll);
 	ClassDB::bind_method(D_METHOD("get_h_scroll"), &ScrollContainer::get_h_scroll);
@@ -857,6 +984,15 @@ void ScrollContainer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_draw_focus_border", "draw"), &ScrollContainer::set_draw_focus_border);
 	ClassDB::bind_method(D_METHOD("get_draw_focus_border"), &ScrollContainer::get_draw_focus_border);
 
+	ClassDB::bind_method(D_METHOD("set_smooth_scroll_enabled", "enabled"), &ScrollContainer::set_smooth_scroll_enabled);
+	ClassDB::bind_method(D_METHOD("is_smooth_scroll_enabled"), &ScrollContainer::is_smooth_scroll_enabled);
+
+	ClassDB::bind_method(D_METHOD("set_smooth_scroll_speed", "speed"), &ScrollContainer::set_smooth_scroll_speed);
+	ClassDB::bind_method(D_METHOD("get_smooth_scroll_speed"), &ScrollContainer::get_smooth_scroll_speed);
+
+	ClassDB::bind_method(D_METHOD("set_smooth_scroll_friction", "friction"), &ScrollContainer::set_smooth_scroll_friction);
+	ClassDB::bind_method(D_METHOD("get_smooth_scroll_friction"), &ScrollContainer::get_smooth_scroll_friction);
+
 	ADD_SIGNAL(MethodInfo("scroll_started"));
 	ADD_SIGNAL(MethodInfo("scroll_ended"));
 
@@ -872,6 +1008,11 @@ void ScrollContainer::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "vertical_scroll_mode", PROPERTY_HINT_ENUM, "Disabled,Auto,Always Show,Never Show,Reserve"), "set_vertical_scroll_mode", "get_vertical_scroll_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "scroll_horizontal_by_default"), "set_scroll_horizontal_by_default", "is_scroll_horizontal_by_default");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "scroll_deadzone"), "set_deadzone", "get_deadzone");
+
+	ADD_GROUP("Smooth Scrolling", "smooth_scroll_");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "smooth_scroll_enabled"), "set_smooth_scroll_enabled", "is_smooth_scroll_enabled");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "smooth_scroll_speed", PROPERTY_HINT_RANGE, "1,50,0.1,or_greater"), "set_smooth_scroll_speed", "get_smooth_scroll_speed");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "smooth_scroll_friction", PROPERTY_HINT_RANGE, "0.1,20,0.1,or_greater"), "set_smooth_scroll_friction", "get_smooth_scroll_friction");
 
 	ADD_GROUP("Scroll Hint", "");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "scroll_hint_mode", PROPERTY_HINT_ENUM, "Disabled,All,Top and Left,Bottom and Right"), "set_scroll_hint_mode", "get_scroll_hint_mode");

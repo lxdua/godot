@@ -88,6 +88,18 @@ private:
 	int scroll_speed = 12;
 	bool scroll_horizontal_by_default = false;
 
+	// Smooth scrolling.
+	bool smooth_scroll_enabled = false;
+	float smooth_scroll_speed = 12.0f;
+	float smooth_scroll_friction = 5.0f;      // Exponential decay rate for touch inertia.
+	float smooth_scroll_min_velocity = 10.0f;  // Velocity threshold to stop inertia.
+
+	bool smooth_scrolling = false;           // Whether a smooth scroll animation is active.
+	Vector2 target_scroll_position;          // The scroll position we are animating towards.
+
+	void _smooth_scroll_towards(const Vector2 &p_target);
+	void _animate_smooth_scroll(double p_delta);
+
 	ScrollHintMode scroll_hint_mode = SCROLL_HINT_MODE_DISABLED;
 	bool tile_scroll_hint = false;
 
@@ -181,6 +193,15 @@ public:
 
 	void set_draw_focus_border(bool p_draw);
 	bool get_draw_focus_border();
+
+	void set_smooth_scroll_enabled(bool p_enabled);
+	bool is_smooth_scroll_enabled() const;
+
+	void set_smooth_scroll_speed(float p_speed);
+	float get_smooth_scroll_speed() const;
+
+	void set_smooth_scroll_friction(float p_friction);
+	float get_smooth_scroll_friction() const;
 
 	ScrollContainer();
 };
