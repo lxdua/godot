@@ -32,10 +32,129 @@
 
 #include "core/config/engine.h"
 #include "core/config/project_settings.h"
+#include "core/math/math_funcs.h"
 #include "core/object/callable_mp.h"
 #include "core/object/class_db.h"
 #include "scene/main/scene_tree.h"
 #include "scene/main/viewport.h"
+
+void Camera2D::_init_shake_noise() {
+	_shake_noise_x.SetNoiseType(fastnoiselite::FastNoiseLite::NoiseType_OpenSimplex2);
+	_shake_noise_x.SetSeed(0);
+	_shake_noise_x.SetFrequency(1.0f);
+
+	_shake_noise_y.SetNoiseType(fastnoiselite::FastNoiseLite::NoiseType_OpenSimplex2);
+	_shake_noise_y.SetSeed(1337);
+	_shake_noise_y.SetFrequency(1.0f);
+
+	_shake_noise_rot.SetNoiseType(fastnoiselite::FastNoiseLite::NoiseType_OpenSimplex2);
+	_shake_noise_rot.SetSeed(2674);
+	_shake_noise_rot.SetFrequency(1.0f);
+}
+
+void Camera2D::_update_shake(real_t p_delta) {
+	if (!_shake_active) {
+		_shake_offset = Vector2();
+		_shake_rotation_offset = 0.0;
+		return;
+	}
+
+	_shake_time += p_delta;
+	_shake_elapsed += p_delta;
+
+	// For oneshot mode, check if duration has expired.
+	if (_shake_is_oneshot) {
+		if (_shake_elapsed >= _shake_duration) {
+			_shake_active = false;
+			_shake_offset = Vector2();
+			_shake_rotation_offset = 0.0;
+			_shake_current_strength = 0.0;
+			return;
+		}
+		// Exponential decay based on elapsed time.
+		_shake_current_strength = _shake_initial_strength * Math::exp(-shake_decay_rate * _shake_elapsed);
+	}
+	// For continuous mode, _shake_current_strength stays constant (set in start_shake).
+
+	// Sample noise at current time * frequency.
+	real_t sample_t = _shake_time * shake_frequency;
+	real_t noise_x = _shake_noise_x.GetNoise(sample_t, 0.0f); // Returns [-1, 1].
+	real_t noise_y = _shake_noise_y.GetNoise(0.0f, sample_t);
+	real_t noise_rot = _shake_noise_rot.GetNoise(sample_t, sample_t);
+
+	_shake_offset = Vector2(noise_x, noise_y) * _shake_current_strength;
+	_shake_rotation_offset = noise_rot * shake_rotation_strength * (_shake_current_strength / MAX(_shake_initial_strength, 0.001));
+}
+
+void Camera2D::apply_shake(real_t p_strength, real_t p_duration) {
+	_shake_is_oneshot = true;
+	_shake_active = true;
+	_shake_elapsed = 0.0;
+	_shake_duration = MAX(p_duration, 0.01);
+
+	_shake_initial_strength = (p_strength > 0.0) ? p_strength : shake_strength;
+	_shake_current_strength = _shake_initial_strength;
+}
+
+void Camera2D::start_shake(real_t p_strength) {
+	_shake_is_oneshot = false;
+	_shake_active = true;
+	_shake_elapsed = 0.0;
+
+	_shake_initial_strength = (p_strength > 0.0) ? p_strength : shake_strength;
+	_shake_current_strength = _shake_initial_strength;
+}
+
+void Camera2D::stop_shake() {
+	_shake_active = false;
+	_shake_offset = Vector2();
+	_shake_rotation_offset = 0.0;
+	_shake_current_strength = 0.0;
+}
+
+bool Camera2D::is_shaking() const {
+	return _shake_active;
+}
+
+void Camera2D::set_shake_strength(real_t p_strength) {
+	shake_strength = MAX(0.0, p_strength);
+}
+
+real_t Camera2D::get_shake_strength() const {
+	return shake_strength;
+}
+
+void Camera2D::set_shake_rotation_strength(real_t p_strength) {
+	shake_rotation_strength = MAX(0.0, p_strength);
+}
+
+real_t Camera2D::get_shake_rotation_strength() const {
+	return shake_rotation_strength;
+}
+
+void Camera2D::set_shake_frequency(real_t p_frequency) {
+	shake_frequency = MAX(0.1, p_frequency);
+}
+
+real_t Camera2D::get_shake_frequency() const {
+	return shake_frequency;
+}
+
+void Camera2D::set_shake_decay_rate(real_t p_rate) {
+	shake_decay_rate = MAX(0.0, p_rate);
+}
+
+real_t Camera2D::get_shake_decay_rate() const {
+	return shake_decay_rate;
+}
+
+Vector2 Camera2D::get_shake_offset() const {
+	return _shake_offset;
+}
+
+real_t Camera2D::get_shake_rotation_offset() const {
+	return _shake_rotation_offset;
+}
 
 void Camera2D::_update_scroll() {
 	if (!is_inside_tree() || !viewport) {
@@ -257,12 +376,29 @@ Transform2D Camera2D::get_camera_transform() {
 		screen_rect.position += offset;
 	}
 
+	// Apply camera shake offset.
+	if (_shake_active) {
+		screen_rect.position += _shake_offset;
+	}
+
 	Transform2D xform;
 	xform.scale_basis(zoom_scale);
 	if (!ignore_rotation) {
 		xform.set_rotation(camera_angle);
 	}
 	xform.set_origin(screen_rect.position);
+
+	// Apply shake rotation around screen center (not top-left corner).
+	if (_shake_active && _shake_rotation_offset != 0.0) {
+		Vector2 screen_center = xform.xform(0.5 * screen_size);
+		Transform2D shake_rot;
+		shake_rot.set_origin(-screen_center);
+		Transform2D shake_rot2;
+		shake_rot2.set_rotation(_shake_rotation_offset);
+		Transform2D shake_rot3;
+		shake_rot3.set_origin(screen_center);
+		xform = shake_rot3 * shake_rot2 * shake_rot * xform;
+	}
 
 	camera_screen_center = xform.xform(0.5 * screen_size);
 
@@ -297,10 +433,16 @@ void Camera2D::_notification(int p_what) {
 #endif
 
 		case NOTIFICATION_INTERNAL_PROCESS: {
+			if (_shake_active) {
+				_update_shake(get_process_delta_time());
+			}
 			_update_scroll();
 		} break;
 
 		case NOTIFICATION_INTERNAL_PHYSICS_PROCESS: {
+			if (_shake_active && process_callback == CAMERA2D_PROCESS_PHYSICS) {
+				_update_shake(get_physics_process_delta_time());
+			}
 			if (is_physics_interpolated_and_enabled()) {
 				_ensure_update_interpolation_data();
 				_interpolation_data.xform_curr = get_camera_transform();
@@ -994,6 +1136,33 @@ void Camera2D::_bind_methods() {
 	ADD_PROPERTYI(PropertyInfo(Variant::FLOAT, "drag_right_margin", PROPERTY_HINT_RANGE, "0,1,0.01"), "set_drag_margin", "get_drag_margin", SIDE_RIGHT);
 	ADD_PROPERTYI(PropertyInfo(Variant::FLOAT, "drag_bottom_margin", PROPERTY_HINT_RANGE, "0,1,0.01"), "set_drag_margin", "get_drag_margin", SIDE_BOTTOM);
 
+	// Camera shake methods.
+	ClassDB::bind_method(D_METHOD("apply_shake", "strength", "duration"), &Camera2D::apply_shake, DEFVAL(-1.0), DEFVAL(0.3));
+	ClassDB::bind_method(D_METHOD("start_shake", "strength"), &Camera2D::start_shake, DEFVAL(-1.0));
+	ClassDB::bind_method(D_METHOD("stop_shake"), &Camera2D::stop_shake);
+	ClassDB::bind_method(D_METHOD("is_shaking"), &Camera2D::is_shaking);
+
+	ClassDB::bind_method(D_METHOD("set_shake_strength", "strength"), &Camera2D::set_shake_strength);
+	ClassDB::bind_method(D_METHOD("get_shake_strength"), &Camera2D::get_shake_strength);
+
+	ClassDB::bind_method(D_METHOD("set_shake_rotation_strength", "strength"), &Camera2D::set_shake_rotation_strength);
+	ClassDB::bind_method(D_METHOD("get_shake_rotation_strength"), &Camera2D::get_shake_rotation_strength);
+
+	ClassDB::bind_method(D_METHOD("set_shake_frequency", "frequency"), &Camera2D::set_shake_frequency);
+	ClassDB::bind_method(D_METHOD("get_shake_frequency"), &Camera2D::get_shake_frequency);
+
+	ClassDB::bind_method(D_METHOD("set_shake_decay_rate", "rate"), &Camera2D::set_shake_decay_rate);
+	ClassDB::bind_method(D_METHOD("get_shake_decay_rate"), &Camera2D::get_shake_decay_rate);
+
+	ClassDB::bind_method(D_METHOD("get_shake_offset"), &Camera2D::get_shake_offset);
+	ClassDB::bind_method(D_METHOD("get_shake_rotation_offset"), &Camera2D::get_shake_rotation_offset);
+
+	ADD_GROUP("Shake", "shake_");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "shake_strength", PROPERTY_HINT_RANGE, "0,100,0.1,or_greater,suffix:px"), "set_shake_strength", "get_shake_strength");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "shake_rotation_strength", PROPERTY_HINT_RANGE, "0,1,0.001,or_greater,suffix:rad"), "set_shake_rotation_strength", "get_shake_rotation_strength");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "shake_frequency", PROPERTY_HINT_RANGE, "0.1,50,0.1,or_greater"), "set_shake_frequency", "get_shake_frequency");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "shake_decay_rate", PROPERTY_HINT_RANGE, "0,20,0.1,or_greater"), "set_shake_decay_rate", "get_shake_decay_rate");
+
 	ADD_GROUP("Editor", "editor_");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "editor_draw_screen"), "set_screen_drawing_enabled", "is_screen_drawing_enabled");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "editor_draw_limits"), "set_limit_drawing_enabled", "is_limit_drawing_enabled");
@@ -1008,4 +1177,5 @@ void Camera2D::_bind_methods() {
 Camera2D::Camera2D() {
 	set_notify_transform(true);
 	set_hide_clip_children(true);
+	_init_shake_noise();
 }

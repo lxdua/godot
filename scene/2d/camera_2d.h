@@ -31,6 +31,7 @@
 #pragma once
 
 #include "scene/2d/node_2d.h"
+#include <thirdparty/misc/FastNoiseLite.h>
 
 class Camera2D : public Node2D {
 	GDCLASS(Camera2D, Node2D);
@@ -97,6 +98,30 @@ protected:
 	void _reset_just_exited() { just_exited_tree = false; }
 
 	void _update_process_internal_for_smoothing();
+
+	// Camera shake.
+	fastnoiselite::FastNoiseLite _shake_noise_x;
+	fastnoiselite::FastNoiseLite _shake_noise_y;
+	fastnoiselite::FastNoiseLite _shake_noise_rot;
+
+	real_t shake_strength = 10.0; // Max position offset in pixels.
+	real_t shake_rotation_strength = 0.05; // Max rotation offset in radians.
+	real_t shake_frequency = 15.0; // Noise sampling frequency.
+	real_t shake_decay_rate = 3.0; // Exponential decay rate.
+
+	real_t _shake_current_strength = 0.0; // Current strength (decays over time).
+	real_t _shake_initial_strength = 0.0; // Strength at the start of shake (for decay calculation).
+	real_t _shake_time = 0.0; // Elapsed time for noise sampling.
+	real_t _shake_duration = 0.0; // Total duration for apply_shake (0 = infinite / manual).
+	real_t _shake_elapsed = 0.0; // Elapsed time since apply_shake was called.
+	bool _shake_active = false; // Whether shake is currently running.
+	bool _shake_is_oneshot = false; // true = apply_shake mode, false = start_shake mode.
+
+	Vector2 _shake_offset; // Current frame's computed shake offset.
+	real_t _shake_rotation_offset = 0.0; // Current frame's computed rotation offset.
+
+	void _update_shake(real_t p_delta);
+	void _init_shake_noise();
 
 	bool screen_drawing_enabled = true;
 	bool limit_drawing_enabled = false;
@@ -196,6 +221,27 @@ public:
 	void force_update_scroll();
 	void reset_smoothing();
 	void align();
+
+	// Camera shake API.
+	void apply_shake(real_t p_strength = -1.0, real_t p_duration = 0.3);
+	void start_shake(real_t p_strength = -1.0);
+	void stop_shake();
+	bool is_shaking() const;
+
+	void set_shake_strength(real_t p_strength);
+	real_t get_shake_strength() const;
+
+	void set_shake_rotation_strength(real_t p_strength);
+	real_t get_shake_rotation_strength() const;
+
+	void set_shake_frequency(real_t p_frequency);
+	real_t get_shake_frequency() const;
+
+	void set_shake_decay_rate(real_t p_rate);
+	real_t get_shake_decay_rate() const;
+
+	Vector2 get_shake_offset() const;
+	real_t get_shake_rotation_offset() const;
 
 	void set_screen_drawing_enabled(bool p_enabled);
 	bool is_screen_drawing_enabled() const;

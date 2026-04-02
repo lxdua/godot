@@ -97,6 +97,49 @@
 				Sets the camera limit for the specified [enum Side]. See also [member limit_bottom], [member limit_top], [member limit_left], and [member limit_right].
 			</description>
 		</method>
+		<method name="apply_shake">
+			<return type="void" />
+			<param index="0" name="strength" type="float" default="-1.0" />
+			<param index="1" name="duration" type="float" default="0.3" />
+			<description>
+				Triggers a one-shot camera shake that automatically decays over [param duration] seconds. The shake intensity starts at [param strength] (in pixels) and exponentially decays to zero based on [member shake_decay_rate].
+				If [param strength] is negative or omitted, the value of [member shake_strength] is used.
+				This is the most common way to trigger camera shake for events like explosions, hits, or landing impacts.
+			</description>
+		</method>
+		<method name="start_shake">
+			<return type="void" />
+			<param index="0" name="strength" type="float" default="-1.0" />
+			<description>
+				Starts a continuous camera shake at a constant intensity. The shake will persist until [method stop_shake] is called.
+				If [param strength] is negative or omitted, the value of [member shake_strength] is used.
+				Useful for sustained effects like earthquakes, engine vibration, or boss phase transitions.
+			</description>
+		</method>
+		<method name="stop_shake">
+			<return type="void" />
+			<description>
+				Immediately stops any active camera shake (both one-shot and continuous) and resets the shake offset to zero.
+			</description>
+		</method>
+		<method name="is_shaking" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Returns [code]true[/code] if the camera is currently shaking (either from [method apply_shake] or [method start_shake]).
+			</description>
+		</method>
+		<method name="get_shake_offset" qualifiers="const">
+			<return type="Vector2" />
+			<description>
+				Returns the current shake position offset in pixels. Useful for applying the same shake effect to other elements (e.g., UI or particles).
+			</description>
+		</method>
+		<method name="get_shake_rotation_offset" qualifiers="const">
+			<return type="float" />
+			<description>
+				Returns the current shake rotation offset in radians.
+			</description>
+		</method>
 	</methods>
 	<members>
 		<member name="anchor_mode" type="int" setter="set_anchor_mode" getter="get_anchor_mode" enum="Camera2D.AnchorMode" default="1">
@@ -185,6 +228,18 @@
 		</member>
 		<member name="rotation_smoothing_speed" type="float" setter="set_rotation_smoothing_speed" getter="get_rotation_smoothing_speed" default="5.0">
 			The angular, asymptotic speed of the camera's rotation smoothing effect when [member rotation_smoothing_enabled] is [code]true[/code].
+		</member>
+		<member name="shake_strength" type="float" setter="set_shake_strength" getter="get_shake_strength" default="10.0">
+			The maximum position offset of the camera shake in pixels. Higher values create more intense shaking. Used as the default strength when calling [method apply_shake] or [method start_shake] without specifying a strength.
+		</member>
+		<member name="shake_rotation_strength" type="float" setter="set_shake_rotation_strength" getter="get_shake_rotation_strength" default="0.05">
+			The maximum rotation offset of the camera shake in radians. Adds rotational wobble to the shake effect for a more cinematic feel. Set to [code]0[/code] to disable rotational shaking.
+		</member>
+		<member name="shake_frequency" type="float" setter="set_shake_frequency" getter="get_shake_frequency" default="15.0">
+			Controls how rapidly the shake oscillates. Higher values produce faster, more frantic shaking. Lower values produce slow, wavy motion (like a handheld camera). The noise is sampled at this frequency along the time axis.
+		</member>
+		<member name="shake_decay_rate" type="float" setter="set_shake_decay_rate" getter="get_shake_decay_rate" default="3.0">
+			The exponential decay rate for one-shot shakes triggered by [method apply_shake]. Higher values make the shake fade out faster. A value of [code]0[/code] means no decay (constant intensity until duration expires).
 		</member>
 		<member name="zoom" type="Vector2" setter="set_zoom" getter="get_zoom" default="Vector2(1, 1)">
 			The camera's zoom. Higher values are more zoomed in. For example, a zoom of [code]Vector2(2.0, 2.0)[/code] will be twice as zoomed in on each axis (the view covers an area four times smaller). In contrast, a zoom of [code]Vector2(0.5, 0.5)[/code] will be twice as zoomed out on each axis (the view covers an area four times larger). The X and Y components should generally always be set to the same value, unless you wish to stretch the camera view.
