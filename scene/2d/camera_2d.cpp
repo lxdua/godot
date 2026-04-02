@@ -71,8 +71,9 @@ void Camera2D::_update_shake(real_t p_delta) {
 			_shake_current_strength = 0.0;
 			return;
 		}
-		// Exponential decay based on elapsed time.
-		_shake_current_strength = _shake_initial_strength * Math::exp(-shake_decay_rate * _shake_elapsed);
+		// Exponential decay normalized to duration, so the shake fades out over the full duration.
+		real_t t = _shake_elapsed / _shake_duration; // Progress 0..1.
+		_shake_current_strength = _shake_initial_strength * Math::exp(-shake_decay_rate * t);
 	}
 	// For continuous mode, _shake_current_strength stays constant (set in start_shake).
 
