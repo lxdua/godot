@@ -300,9 +300,10 @@ void GameplayTagManager::load_project_tags() {
 	if (!ProjectSettings::get_singleton()->has_setting("gameplay_tags/tag_list")) {
 		ProjectSettings::get_singleton()->set_setting("gameplay_tags/tag_list", PackedStringArray());
 		ProjectSettings::get_singleton()->set_initial_value("gameplay_tags/tag_list", PackedStringArray());
-
-		ProjectSettings::get_singleton()->set_custom_property_info(PropertyInfo(Variant::PACKED_STRING_ARRAY, "gameplay_tags/tag_list"));
 	}
+
+	// Hide from the General settings inspector (managed via the Gameplay Tags tab instead).
+	ProjectSettings::get_singleton()->set_custom_property_info(PropertyInfo(Variant::PACKED_STRING_ARRAY, "gameplay_tags/tag_list", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_STORAGE));
 
 	PackedStringArray tags = ProjectSettings::get_singleton()->get_setting("gameplay_tags/tag_list", PackedStringArray());
 	for (int i = 0; i < tags.size(); i++) {

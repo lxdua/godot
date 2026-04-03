@@ -428,3 +428,103 @@ GDScript 无法使用 C++ 值类型的自定义类。`RefCounted` 是 Godot 暴�
    - `add_tag_name`：O(n)（重建父标签缓存，n = 标签数量 × 平均深度）
    - `matches_tag`（GameplayTag 上）：O(m)（m = 标签名长度，逐字符比较）
 4. **序列化**：GameplayTagContainer 通过 `tag_names` 属性（PackedStringArray）序列化，所有 `.tres` / `.tscn` 文件中存储的是字符串数组。
+
+---
+
+## 十一、Node 集成
+
+每个 Node 都天然拥有 `gameplay_tags` 属性，在 Inspector 中显示为 "Gameplay Tags" 分组。
+
+### Node 上新增的 API
+
+| 方法/属性 | 签名 | 说明 |
+|----------|------|------|
+| `gameplay_tags` | `Ref<GameplayTagContainer>` | 属性，Inspector 中可编辑 |
+| `set_gameplay_tags` | `set_gameplay_tags(tags: GameplayTagContainer)` | 设置标签容器 |
+| `get_gameplay_tags` | `get_gameplay_tags() -> GameplayTagContainer` | 获取标签容器 |
+| `add_gameplay_tag` | `add_gameplay_tag(tag_name: StringName)` | 添加标签（自动创建容器） |
+| `remove_gameplay_tag` | `remove_gameplay_tag(tag_name: StringName)` | 移除标签 |
+| `has_gameplay_tag` | `has_gameplay_tag(tag_name: StringName) -> bool` | 层级匹配查询 |
+| `has_gameplay_tag_exact` | `has_gameplay_tag_exact(tag_name: StringName) -> bool` | 精确匹配查询 |
+
+### 使用示例
+
+```gdscript
+# 通过便捷方法
+var enemy = get_node("Enemy")
+enemy.add_gameplay_tag("Enemy.Type.Undead")
+enemy.add_gameplay_tag("Enemy.Rank.Boss")
+
+if enemy.has_gameplay_tag("Enemy.Type"):     # true（层级匹配）
+    print("这是一个敌人")
+
+if enemy.has_gameplay_tag("Enemy.Rank.Boss"): # true
+    print("这是一个Boss!")
+```
+
+### 设计细节
+
+- **懒初始化**：初始时 `gameplay_tags` 为 null，不占内存。首次调用 `add_gameplay_tag()` 时自动创建容器。
+- **修改文件**：`scene/main/node.h`（添加成员和方法声明）、`scene/main/node.cpp`（方法实现和绑定）
+
+---
+
+## 十二、编辑器集成
+
+### 改动文件清单
+
+| 文件 | 操作 | 说明 |
+|------|------|------|
+| `editor/gui/gameplay_tag_picker_dialog.h/.cpp` | **新建** | Tag 选择器弹窗（公共组件） |
+| `editor/settings/gameplay_tag_settings_editor.h/.cpp` | **新建** | ProjectSettings → 全局 → Gameplay Tags 面板 |
+| `editor/inspector/gameplay_tag_editor_plugin.h/.cpp` | **新建** | Inspector 中 GameplayTagContainer 的自定义编辑器 |
+| `editor/settings/project_settings_editor.h` | **修改** | 添加 GameplayTagSettingsEditor 前向声明和成员 |
+| `editor/settings/project_settings_editor.cpp` | **修改** | 创建并嵌入 Gameplay Tags 标签页 |
+| `editor/register_editor_types.cpp` | **修改** | 注册 GameplayTagEditorPlugin |
+
+### 12.1 GameplayTagPickerDialog — Tag 选择器弹窗
+
+可复用的弹窗对话框，被 ProjectSettings 面板和 Inspector 属性编辑器共享。
+
+**功能**：
+- 从 `GameplayTagManager` 读取所有已注册标签，以树形结构显示
+- 搜索框实时过滤（匹配完整标签路径）
+- 单选模式：点击选中，双击确认
+- 多选模式：勾选框独立勾选，确认后返回所有勾选项
+- 每次弹出时自动刷新标签树
+
+### 12.2 GameplayTagSettingsEditor — 项目设置面板
+
+嵌入 **Project Settings → 全局 → Gameplay Tags** 标签页。
+
+**功能**：
+- 顶部：输入标签名 + 备注 + Add 按钮
+- 主体：两列 Tree（Tag 名称 + Comment），树形层级显示
+- 每行有删除按钮（仅叶子标签可删除）
+- Comment 列可内联编辑
+- 修改后自动保存到 `project.godot`
+
+### 12.3 GameplayTagEditorPlugin — Inspector 属性编辑器
+
+当 Inspector 中正在编辑一个 `GameplayTagContainer` 资源时，注入自定义编辑界面。
+
+**功能**：
+- 显示当前容器中的所有标签列表
+- 每个标签旁有 × 删除按钮
+- "Add Tag..." 按钮弹出 GameplayTagPickerDialog
+- 实时响应容器变化（通过 `connect_changed`）
+
+### 属性隐藏
+
+- `GameplayTagContainer.tag_names` 属性标记为 `PROPERTY_USAGE_STORAGE`，仅用于序列化，不在 Inspector 中显示原始 PackedStringArray 编辑器
+- `gameplay_tags/tag_list` 项目设置也标记为 `PROPERTY_USAGE_STORAGE`，不在"常规"面板中显示，通过专用 Gameplay Tags 标签页管理
+
+### 使用流程
+
+1. 打开 **Project Settings → 全局 → Gameplay Tags**
+2. 输入标签名（如 `Damage.Fire.DoT`），点击 Add
+3. 标签自动以树形结构显示（Damage → Fire → DoT）
+4. 在场景中选中一个 Node，在 Inspector 的 **Gameplay Tags** 分组中点击 GameplayTagContainer
+5. 点击 **"Add Tag..."**，弹出树形选择器
+6. 勾选需要的标签，点击确定
+7. 标签显示在 Inspector 的标签列表中

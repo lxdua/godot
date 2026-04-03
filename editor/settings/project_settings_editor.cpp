@@ -35,6 +35,7 @@
 #include "core/object/callable_mp.h"
 #include "core/object/class_db.h"
 #include "editor/editor_node.h"
+#include "editor/settings/gameplay_tag_settings_editor.h"
 #include "editor/editor_string_names.h"
 #include "editor/editor_undo_redo_manager.h"
 #include "editor/export/editor_export.h"
@@ -417,6 +418,8 @@ void ProjectSettingsEditor::_focus_current_path_box() {
 		current_path_box = shaders_global_shader_uniforms_editor->get_name_box();
 	} else if (tab == group_settings) {
 		current_path_box = group_settings->get_name_box();
+	} else if (tab == gameplay_tag_settings) {
+		current_path_box = gameplay_tag_settings->get_name_box();
 	}
 
 	if (current_path_box) {
@@ -842,6 +845,11 @@ ProjectSettingsEditor::ProjectSettingsEditor(EditorData *p_data) {
 	group_settings->set_name(TTRC("Groups"));
 	group_settings->connect("group_changed", callable_mp(this, &ProjectSettingsEditor::queue_save));
 	globals_container->add_child(group_settings);
+
+	gameplay_tag_settings = memnew(GameplayTagSettingsEditor);
+	gameplay_tag_settings->set_name(TTRC("Gameplay Tags"));
+	gameplay_tag_settings->connect("tags_changed", callable_mp(this, &ProjectSettingsEditor::queue_save));
+	globals_container->add_child(gameplay_tag_settings);
 
 	plugin_settings = memnew(EditorPluginSettings);
 	plugin_settings->set_name(TTRC("Plugins"));

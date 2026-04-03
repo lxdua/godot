@@ -46,6 +46,7 @@
 
 class EditorVariantTypeOptionButton;
 class FileSystemDock;
+class GameplayTagSettingsEditor;
 
 class ProjectSettingsEditor : public AcceptDialog {
 	GDCLASS(ProjectSettingsEditor, AcceptDialog);
@@ -69,6 +70,7 @@ class ProjectSettingsEditor : public AcceptDialog {
 	EditorAutoloadSettings *autoload_settings = nullptr;
 	ShaderGlobalsEditor *shaders_global_shader_uniforms_editor = nullptr;
 	GroupSettingsEditor *group_settings = nullptr;
+	GameplayTagSettingsEditor *gameplay_tag_settings = nullptr;
 	EditorPluginSettings *plugin_settings = nullptr;
 
 	LineEdit *search_box = nullptr;

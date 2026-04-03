@@ -314,6 +314,6 @@ void GameplayTagContainer::_bind_methods() {
 	// Static.
 	ClassDB::bind_static_method("GameplayTagContainer", D_METHOD("create_from_array", "tag_names"), &GameplayTagContainer::create_from_array);
 
-	// Property for serialization.
-	ADD_PROPERTY(PropertyInfo(Variant::PACKED_STRING_ARRAY, "tag_names"), "set_tag_names", "get_tag_names");
+	// Property for serialization only (not shown in Inspector; edited via GameplayTagContainerEditor).
+	ADD_PROPERTY(PropertyInfo(Variant::PACKED_STRING_ARRAY, "tag_names", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_STORAGE), "set_tag_names", "get_tag_names");
 }

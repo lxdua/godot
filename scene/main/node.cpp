@@ -2537,6 +2537,43 @@ int Node::get_persistent_group_count() const {
 	return count;
 }
 
+// --- Gameplay Tags ---
+
+void Node::set_gameplay_tags(const Ref<GameplayTagContainer> &p_tags) {
+	data.gameplay_tags = p_tags;
+}
+
+Ref<GameplayTagContainer> Node::get_gameplay_tags() const {
+	return data.gameplay_tags;
+}
+
+void Node::add_gameplay_tag(const StringName &p_tag_name) {
+	if (data.gameplay_tags.is_null()) {
+		data.gameplay_tags.instantiate();
+	}
+	data.gameplay_tags->add_tag_name(p_tag_name);
+}
+
+void Node::remove_gameplay_tag(const StringName &p_tag_name) {
+	if (data.gameplay_tags.is_valid()) {
+		data.gameplay_tags->remove_tag_name(p_tag_name);
+	}
+}
+
+bool Node::has_gameplay_tag(const StringName &p_tag_name) const {
+	if (data.gameplay_tags.is_null()) {
+		return false;
+	}
+	return data.gameplay_tags->has_tag_name(p_tag_name);
+}
+
+bool Node::has_gameplay_tag_exact(const StringName &p_tag_name) const {
+	if (data.gameplay_tags.is_null()) {
+		return false;
+	}
+	return data.gameplay_tags->has_tag_exact_name(p_tag_name);
+}
+
 void Node::print_tree_pretty() {
 	print_line(_get_tree_string_pretty("", true));
 }
@@ -3780,6 +3817,14 @@ void Node::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("add_to_group", "group", "persistent"), &Node::add_to_group, DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("remove_from_group", "group"), &Node::remove_from_group);
 	ClassDB::bind_method(D_METHOD("is_in_group", "group"), &Node::is_in_group);
+
+	ClassDB::bind_method(D_METHOD("set_gameplay_tags", "tags"), &Node::set_gameplay_tags);
+	ClassDB::bind_method(D_METHOD("get_gameplay_tags"), &Node::get_gameplay_tags);
+	ClassDB::bind_method(D_METHOD("add_gameplay_tag", "tag_name"), &Node::add_gameplay_tag);
+	ClassDB::bind_method(D_METHOD("remove_gameplay_tag", "tag_name"), &Node::remove_gameplay_tag);
+	ClassDB::bind_method(D_METHOD("has_gameplay_tag", "tag_name"), &Node::has_gameplay_tag);
+	ClassDB::bind_method(D_METHOD("has_gameplay_tag_exact", "tag_name"), &Node::has_gameplay_tag_exact);
+
 	ClassDB::bind_method(D_METHOD("move_child", "child_node", "to_index"), &Node::move_child);
 	ClassDB::bind_method(D_METHOD("get_groups"), &Node::_get_groups);
 	ClassDB::bind_method(D_METHOD("set_owner", "owner"), &Node::set_owner);
@@ -4052,6 +4097,9 @@ void Node::_bind_methods() {
 
 	ADD_GROUP("Editor Description", "editor_");
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "editor_description", PROPERTY_HINT_MULTILINE_TEXT), "set_editor_description", "get_editor_description");
+
+	ADD_GROUP("Gameplay Tags", "gameplay_");
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "gameplay_tags", PROPERTY_HINT_RESOURCE_TYPE, "GameplayTagContainer"), "set_gameplay_tags", "get_gameplay_tags");
 
 	GDVIRTUAL_BIND(_process, "delta");
 	GDVIRTUAL_BIND(_physics_process, "delta");

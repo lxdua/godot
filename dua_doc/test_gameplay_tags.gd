@@ -88,5 +88,28 @@ func _init():
 	print("  'My_Tag.V2' 合法: ", GameplayTagManager.is_valid_tag_name("My_Tag.V2"))          # true
 	print("")
 
+	# --- 9. Node 集成 ---
+	print(">> 9. Node 集成")
+	var node = Node.new()
+	print("  初始 tags: ", node.get_gameplay_tags())  # null
+
+	node.add_gameplay_tag("Enemy.Type.Undead")
+	node.add_gameplay_tag("Enemy.Rank.Boss")
+	print("  添加后 tags: ", node.get_gameplay_tags().get_tag_names())
+
+	print("  has Enemy.Type: ", node.has_gameplay_tag("Enemy.Type"))         # true（层级匹配）
+	print("  has Enemy: ", node.has_gameplay_tag("Enemy"))                   # true
+	print("  has Enemy.Rank.Boss: ", node.has_gameplay_tag("Enemy.Rank.Boss"))  # true
+	print("  has Enemy.Type.Dragon: ", node.has_gameplay_tag("Enemy.Type.Dragon"))  # false
+	print("  has_exact Enemy.Type: ", node.has_gameplay_tag_exact("Enemy.Type"))   # false
+	print("  has_exact Enemy.Type.Undead: ", node.has_gameplay_tag_exact("Enemy.Type.Undead"))  # true
+
+	node.remove_gameplay_tag("Enemy.Type.Undead")
+	print("  移除 Undead 后: ", node.get_gameplay_tags().get_tag_names())
+	print("  has Enemy.Type: ", node.has_gameplay_tag("Enemy.Type"))  # false（唯一的子标签已移除）
+
+	node.free()
+	print("")
+
 	print("===== 全部测试完成 =====")
 	quit()
