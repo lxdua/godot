@@ -33,6 +33,9 @@
 #include "core/config/engine.h"
 #include "core/config/project_settings.h"
 #include "core/core_bind.h"
+#include "core/gameplay_tag/gameplay_tag.h"
+#include "core/gameplay_tag/gameplay_tag_container.h"
+#include "core/gameplay_tag/gameplay_tag_manager.h"
 #include "core/crypto/aes_context.h"
 #include "core/crypto/crypto.h"
 #include "core/crypto/crypto_resource_format.h"
@@ -114,6 +117,8 @@ static CoreBind::EngineDebugger *_engine_debugger = nullptr;
 
 static IP *ip = nullptr;
 static Time *_time = nullptr;
+
+static GameplayTagManager *gameplay_tag_manager = nullptr;
 
 static CoreBind::Geometry2D *_geometry_2d = nullptr;
 static CoreBind::Geometry3D *_geometry_3d = nullptr;
@@ -302,6 +307,12 @@ void register_core_types() {
 
 	GDREGISTER_CLASS(EngineProfiler);
 
+	// Gameplay Tag system.
+	GDREGISTER_CLASS(GameplayTag);
+	GDREGISTER_CLASS(GameplayTagContainer);
+	GDREGISTER_CLASS(GameplayTagManager);
+	gameplay_tag_manager = memnew(GameplayTagManager);
+
 	resource_uid = memnew(ResourceUID);
 
 	gdextension_manager = memnew(GDExtensionManager);
@@ -359,6 +370,11 @@ void register_core_settings() {
 
 	GLOBAL_DEF("threading/worker_pool/max_threads", -1);
 	GLOBAL_DEF("threading/worker_pool/low_priority_thread_ratio", 0.3);
+
+	// Load gameplay tags from project settings.
+	if (gameplay_tag_manager) {
+		gameplay_tag_manager->load_project_tags();
+	}
 }
 
 void register_early_core_singletons() {
@@ -385,6 +401,7 @@ void register_core_singletons() {
 	Engine::get_singleton()->add_singleton(Engine::Singleton("GDExtensionManager", GDExtensionManager::get_singleton()));
 	Engine::get_singleton()->add_singleton(Engine::Singleton("ResourceUID", ResourceUID::get_singleton()));
 	Engine::get_singleton()->add_singleton(Engine::Singleton("WorkerThreadPool", worker_thread_pool));
+	Engine::get_singleton()->add_singleton(Engine::Singleton("GameplayTagManager", GameplayTagManager::get_singleton()));
 
 	OS::get_singleton()->benchmark_end_measure("Core", "Register Singletons");
 }
@@ -433,6 +450,10 @@ void unregister_core_types() {
 	memdelete(gdextension_manager);
 
 	memdelete(resource_uid);
+
+	if (gameplay_tag_manager) {
+		memdelete(gameplay_tag_manager);
+	}
 
 	if (ip) {
 		memdelete(ip);
