@@ -100,6 +100,7 @@
 #include "scene/gui/virtual_joystick.h"
 #include "scene/main/canvas_item.h"
 #include "scene/main/canvas_layer.h"
+#include "scene/main/canvas_post_process.h"
 #include "scene/main/http_request.h"
 #include "scene/main/instance_placeholder.h"
 #include "scene/main/missing_node.h"
@@ -944,6 +945,7 @@ void register_scene_types() {
 	GDREGISTER_CLASS(LightOccluder2D);
 	GDREGISTER_CLASS(OccluderPolygon2D);
 	GDREGISTER_CLASS(BackBufferCopy);
+	GDREGISTER_CLASS(CanvasPostProcess);
 	GDREGISTER_CLASS(CanvasModulate);
 
 	OS::get_singleton()->yield(); // may take time to init
