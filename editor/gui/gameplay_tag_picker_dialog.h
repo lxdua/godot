@@ -55,6 +55,10 @@ class GameplayTagPickerDialog : public ConfirmationDialog {
 	// Maps full tag name -> TreeItem for quick lookup.
 	HashMap<StringName, TreeItem *> tag_items;
 
+	// Tags to pre-select after the next tree refresh.
+	PackedStringArray pending_selected_tags;
+	bool has_pending_selection = false;
+
 	void _update_tree();
 	void _search_text_changed(const String &p_text);
 	void _item_activated();
@@ -76,6 +80,9 @@ public:
 
 	// Pre-select tags (for multi-select mode).
 	void set_selected_tags(const PackedStringArray &p_tags);
+
+	// Store tags to be selected after the next tree refresh (deferred).
+	void set_pending_selected_tags(const PackedStringArray &p_tags);
 
 	// Refresh the tree from GameplayTagManager.
 	void refresh();

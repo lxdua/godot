@@ -1461,10 +1461,27 @@ void vertex() {)";
 	}
 
 	if (grow_enabled) {
-		code += R"(
-	// Grow: Enabled
+		if (grow_mode == GROW_MODE_SCREEN_SPACE) {
+			code += R"(
+	// Grow: Screen Space
+	{
+		vec4 _grow_clip_vertex = PROJECTION_MATRIX * MODELVIEW_MATRIX * vec4(VERTEX, 1.0);
+		vec3 _grow_view_normal = mat3(MODELVIEW_MATRIX) * NORMAL;
+		vec2 _grow_proj_normal = (mat2(PROJECTION_MATRIX) * _grow_view_normal.xy);
+		float _grow_len = length(_grow_proj_normal);
+		if (_grow_len > 0.0) {
+			_grow_proj_normal /= _grow_len;
+		}
+		_grow_clip_vertex.xy += _grow_proj_normal * grow * _grow_clip_vertex.w;
+		POSITION = _grow_clip_vertex;
+	}
+)";
+		} else {
+			code += R"(
+	// Grow: Object Space
 	VERTEX += NORMAL * grow;
 )";
+		}
 	}
 
 	if (flags[FLAG_USE_Z_CLIP_SCALE]) {
@@ -2596,6 +2613,10 @@ void BaseMaterial3D::_validate_property(PropertyInfo &p_property) const {
 			p_property.usage = PROPERTY_USAGE_NO_EDITOR;
 		}
 
+		if (p_property.name == "grow_mode" && !grow_enabled) {
+			p_property.usage = PROPERTY_USAGE_NO_EDITOR;
+		}
+
 		if (p_property.name == "point_size" && !flags[FLAG_USE_POINT_SIZE]) {
 			p_property.usage = PROPERTY_USAGE_NO_EDITOR;
 		}
@@ -2953,6 +2974,25 @@ float BaseMaterial3D::get_grow() const {
 	return grow;
 }
 
+void BaseMaterial3D::set_grow_mode(GrowMode p_mode) {
+	if (grow_mode == p_mode) {
+		return;
+	}
+	grow_mode = p_mode;
+	_queue_shader_change();
+	notify_property_list_changed();
+
+	// Sync to stencil outline next pass if it exists.
+	Ref<BaseMaterial3D> stencil_next_pass = _get_stencil_next_pass();
+	if (stencil_next_pass.is_valid()) {
+		stencil_next_pass->set_grow_mode(p_mode);
+	}
+}
+
+BaseMaterial3D::GrowMode BaseMaterial3D::get_grow_mode() const {
+	return grow_mode;
+}
+
 static Vector4 _get_texture_mask(BaseMaterial3D::TextureChannel p_channel) {
 	static const Vector4 masks[5] = {
 		Vector4(1, 0, 0, 0),
@@ -3194,6 +3234,7 @@ void BaseMaterial3D::_prepare_stencil_effect() {
 			stencil_next_pass->set_flag(FLAG_DISABLE_DEPTH_TEST, false);
 			stencil_next_pass->set_grow_enabled(true);
 			stencil_next_pass->set_grow(stencil_effect_outline_thickness);
+			stencil_next_pass->set_grow_mode(grow_mode);
 			stencil_next_pass->set_albedo(stencil_effect_color);
 			stencil_next_pass->set_stencil_mode(STENCIL_MODE_CUSTOM);
 			stencil_next_pass->set_stencil_flags(STENCIL_FLAG_READ);
@@ -3532,6 +3573,9 @@ void BaseMaterial3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_grow_enabled", "enable"), &BaseMaterial3D::set_grow_enabled);
 	ClassDB::bind_method(D_METHOD("is_grow_enabled"), &BaseMaterial3D::is_grow_enabled);
 
+	ClassDB::bind_method(D_METHOD("set_grow_mode", "mode"), &BaseMaterial3D::set_grow_mode);
+	ClassDB::bind_method(D_METHOD("get_grow_mode"), &BaseMaterial3D::get_grow_mode);
+
 	ClassDB::bind_method(D_METHOD("set_metallic_texture_channel", "channel"), &BaseMaterial3D::set_metallic_texture_channel);
 	ClassDB::bind_method(D_METHOD("get_metallic_texture_channel"), &BaseMaterial3D::get_metallic_texture_channel);
 
@@ -3753,6 +3797,7 @@ void BaseMaterial3D::_bind_methods() {
 	ADD_GROUP("Grow", "grow_");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "grow", PROPERTY_HINT_GROUP_ENABLE), "set_grow_enabled", "is_grow_enabled");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "grow_amount", PROPERTY_HINT_RANGE, "-16,16,0.001,suffix:m"), "set_grow", "get_grow");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "grow_mode", PROPERTY_HINT_ENUM, "Object Space,Screen Space"), "set_grow_mode", "get_grow_mode");
 
 	ADD_GROUP("Transform", "");
 	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "fixed_size"), "set_flag", "get_flag", FLAG_FIXED_SIZE);
@@ -3920,6 +3965,9 @@ void BaseMaterial3D::_bind_methods() {
 	BIND_ENUM_CONSTANT(DISTANCE_FADE_PIXEL_ALPHA);
 	BIND_ENUM_CONSTANT(DISTANCE_FADE_PIXEL_DITHER);
 	BIND_ENUM_CONSTANT(DISTANCE_FADE_OBJECT_DITHER);
+
+	BIND_ENUM_CONSTANT(GROW_MODE_OBJECT_SPACE);
+	BIND_ENUM_CONSTANT(GROW_MODE_SCREEN_SPACE);
 
 	BIND_ENUM_CONSTANT(STENCIL_MODE_DISABLED);
 	BIND_ENUM_CONSTANT(STENCIL_MODE_OUTLINE);

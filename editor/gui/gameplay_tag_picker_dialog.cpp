@@ -41,6 +41,13 @@ void GameplayTagPickerDialog::_notification(int p_what) {
 		case NOTIFICATION_VISIBILITY_CHANGED: {
 			if (is_visible()) {
 				refresh();
+
+				// Restore pending selection after tree rebuild.
+				if (has_pending_selection) {
+					set_selected_tags(pending_selected_tags);
+					has_pending_selection = false;
+				}
+
 				search_box->clear();
 				search_box->grab_focus();
 			}
@@ -220,6 +227,11 @@ void GameplayTagPickerDialog::set_selected_tags(const PackedStringArray &p_tags)
 			tag_items[tag_sn]->set_checked(0, true);
 		}
 	}
+}
+
+void GameplayTagPickerDialog::set_pending_selected_tags(const PackedStringArray &p_tags) {
+	pending_selected_tags = p_tags;
+	has_pending_selection = true;
 }
 
 void GameplayTagPickerDialog::refresh() {

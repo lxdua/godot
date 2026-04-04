@@ -517,6 +517,98 @@ if enemy.has_gameplay_tag("Enemy.Rank.Boss"): # true
 ### 属性隐藏
 
 - `GameplayTagContainer.tag_names` 属性标记为 `PROPERTY_USAGE_STORAGE`，仅用于序列化，不在 Inspector 中显示原始 PackedStringArray 编辑器
+
+---
+
+## 十三、TODO List
+
+- [x] 核心层：GameplayTag / GameplayTagContainer / GameplayTagManager
+- [x] ProjectSettings 持久化集成
+- [x] Node 集成（`gameplay_tags` 属性、便捷方法）
+- [x] 编辑器：GameplayTagPickerDialog（标签选择器弹窗）
+- [x] 编辑器：GameplayTagSettingsEditor（项目设置面板）
+- [x] 编辑器：GameplayTagEditorPlugin（Inspector 属性编辑器）
+- [x] 编辑器：修复 Tree 勾选模式下文字消失（`set_cell_mode` 在 `set_text` 之前）
+- [x] 编辑器：修复 Picker Dialog 打开时不还原已选 Tag（pending selection 机制）
+- [ ] 编辑器：Picker Dialog 展开含已选 Tag 的树节点（选了 `Damage.Fire.DoT` 时自动展开 Damage → Fire）
+- [ ] 编辑器：SceneTree 按 Tag 搜索/过滤节点
+- [ ] Node 集成：`find_children_by_tag()` 等按标签查找节点的便捷方法
+
+### 待实现方案备忘
+
+#### Picker Dialog 还原已选 Tag
+
+**问题**：打开选择面板时所有勾选都是空的，没有还原之前已选的 Tag。
+
+**根因**：时序问题。`_add_tag_pressed()` 中先调用 `set_selected_tags()` 再 `popup_centered()`，但 popup 时触发 `NOTIFICATION_VISIBILITY_CHANGED` → `refresh()` → `_update_tree()` 清空重建了整棵树，之前的勾选被覆盖。
+
+**方案**：引入 pending selection 机制。
+1. 新增 `set_pending_selected_tags()`，只存储待选标签到成员变量，不直接操作 Tree。
+2. `_notification(VISIBILITY_CHANGED)` 中，`refresh()` 重建树之后，检查 pending → 调用 `set_selected_tags()` 应用勾选。
+3. 调用方 `_add_tag_pressed()` 改为调用 `set_pending_selected_tags()`。
+
+**改动文件**：
+- `editor/gui/gameplay_tag_picker_dialog.h` — 新增 `pending_selected_tags`、`has_pending_selection`、`set_pending_selected_tags()`
+- `editor/gui/gameplay_tag_picker_dialog.cpp` — 实现 pending 逻辑
+- `editor/inspector/gameplay_tag_editor_plugin.cpp` — `_add_tag_pressed()` 改调用
+
+#### Picker Dialog 自动展开已选节点
+
+**问题**：还原勾选后，如果已选 Tag 在深层（如 `Damage.Fire.DoT`），Tree 默认折叠，用户看不到勾选状态。
+
+**方案**：在 `set_selected_tags()` 中，对每个被勾选的 item，向上遍历 parent 逐级 `set_collapsed(false)`。
+
+```cpp
+// set_selected_tags() 末尾追加：
+for (int i = 0; i < p_tags.size(); i++) {
+    StringName tag_sn = StringName(p_tags[i]);
+    if (tag_items.has(tag_sn)) {
+        TreeItem *item = tag_items[tag_sn];
+        // 展开所有祖先节点
+        TreeItem *parent = item->get_parent();
+        while (parent && parent != tag_tree->get_root()) {
+            parent->set_collapsed(false);
+            parent = parent->get_parent();
+        }
+    }
+}
+```
+
+#### SceneTree 按 Tag 搜索/过滤节点
+
+**问题**：场景树中节点很多时，想快速找到带某个 Tag 的节点很困难。
+
+**方案**：在 SceneTree Dock 的搜索框旁增加 "Tag Filter" 模式，或在现有的 `type:` 过滤语法基础上增加 `tag:` 前缀支持。遍历场景树时调用 `node->has_gameplay_tag()` 做匹配。
+
+#### find_children_by_tag()
+
+**问题**：GDScript 中按标签查找子节点需要手写递归遍历。
+
+**方案**：在 `Node` 类新增方法：
+
+```cpp
+TypedArray<Node> Node::find_children_by_tag(const StringName &p_tag_name, bool p_recursive) const {
+    TypedArray<Node> result;
+    for (int i = 0; i < get_child_count(); i++) {
+        Node *child = get_child(i);
+        if (child->has_gameplay_tag(p_tag_name)) {
+            result.push_back(child);
+        }
+        if (p_recursive) {
+            result.append_array(child->find_children_by_tag(p_tag_name, true));
+        }
+    }
+    return result;
+}
+```
+
+---
+
+## 十四、更新日志
+
+| 日期 | 变更 |
+|------|------|
+| 2025-04-04 | 修复：Picker Dialog 打开时不还原已选 Tag。原因是 `NOTIFICATION_VISIBILITY_CHANGED` 中 `refresh()` 重建了 Tree，覆盖了之前的 `set_selected_tags()`。引入 `set_pending_selected_tags()` 延迟选择机制。 |
 - `gameplay_tags/tag_list` 项目设置也标记为 `PROPERTY_USAGE_STORAGE`，不在"常规"面板中显示，通过专用 Gameplay Tags 标签页管理
 
 ### 使用流程

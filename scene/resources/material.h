@@ -327,6 +327,12 @@ public:
 		DISTANCE_FADE_MAX
 	};
 
+	enum GrowMode {
+		GROW_MODE_OBJECT_SPACE,
+		GROW_MODE_SCREEN_SPACE,
+		GROW_MODE_MAX
+	};
+
 	enum StencilMode {
 		STENCIL_MODE_DISABLED,
 		STENCIL_MODE_OUTLINE,
@@ -384,6 +390,7 @@ private:
 		uint64_t invalid_key : 1;
 		uint64_t deep_parallax : 1;
 		uint64_t grow : 1;
+		uint64_t grow_mode : Math::get_num_bits(GROW_MODE_MAX - 1);
 		uint64_t proximity_fade : 1;
 		uint64_t orm : 1;
 
@@ -435,6 +442,7 @@ private:
 		mk.billboard_mode = billboard_mode;
 		mk.deep_parallax = deep_parallax;
 		mk.grow = grow_enabled;
+		mk.grow_mode = grow_mode;
 		mk.proximity_fade = proximity_fade_enabled;
 		mk.distance_fade = distance_fade;
 		mk.emission_op = emission_op;
@@ -561,6 +569,7 @@ private:
 	float alpha_hash_scale = 0.0f;
 	float alpha_antialiasing_edge = 0.0f;
 	bool grow_enabled = false;
+	GrowMode grow_mode = GROW_MODE_OBJECT_SPACE;
 	float ao_light_affect = 0.0f;
 	float grow = 0.0f;
 	int particles_anim_h_frames = 0;
@@ -808,6 +817,9 @@ public:
 	void set_grow(float p_grow);
 	float get_grow() const;
 
+	void set_grow_mode(GrowMode p_mode);
+	GrowMode get_grow_mode() const;
+
 	void set_alpha_scissor_threshold(float p_threshold);
 	float get_alpha_scissor_threshold() const;
 
@@ -905,6 +917,7 @@ VARIANT_ENUM_CAST(BaseMaterial3D::BillboardMode)
 VARIANT_ENUM_CAST(BaseMaterial3D::TextureChannel)
 VARIANT_ENUM_CAST(BaseMaterial3D::EmissionOperator)
 VARIANT_ENUM_CAST(BaseMaterial3D::DistanceFadeMode)
+VARIANT_ENUM_CAST(BaseMaterial3D::GrowMode)
 VARIANT_ENUM_CAST(BaseMaterial3D::StencilMode)
 VARIANT_ENUM_CAST(BaseMaterial3D::StencilFlags)
 VARIANT_ENUM_CAST(BaseMaterial3D::StencilCompare)

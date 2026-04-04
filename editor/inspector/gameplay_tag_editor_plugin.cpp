@@ -84,7 +84,9 @@ void GameplayTagContainerEditor::_update_tag_list() {
 void GameplayTagContainerEditor::_add_tag_pressed() {
 	picker_dialog->set_multi_select(true);
 	if (container.is_valid()) {
-		picker_dialog->set_selected_tags(container->get_tag_names());
+		// Store as pending — will be applied after the tree refreshes
+		// in NOTIFICATION_VISIBILITY_CHANGED.
+		picker_dialog->set_pending_selected_tags(container->get_tag_names());
 	}
 	picker_dialog->popup_centered();
 }
