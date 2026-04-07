@@ -165,6 +165,7 @@ class SceneTreeDock : public EditorDock {
 	enum FilterMenuItems {
 		FILTER_BY_TYPE = 64, // Used in the same menus as the Tool enum.
 		FILTER_BY_GROUP,
+		FILTER_BY_TAG,
 	};
 
 	LineEdit *filter = nullptr;

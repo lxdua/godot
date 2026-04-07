@@ -1469,10 +1469,7 @@ void vertex() {)";
 		vec4 _grow_clip_vertex = PROJECTION_MATRIX * MODELVIEW_MATRIX * vec4(VERTEX, 1.0);
 		vec3 _grow_view_normal = mat3(MODELVIEW_MATRIX) * NORMAL;
 		vec2 _grow_proj_normal = (mat2(PROJECTION_MATRIX) * _grow_view_normal.xy);
-		float _grow_len = length(_grow_proj_normal);
-		if (_grow_len > 0.0) {
-			_grow_proj_normal /= _grow_len;
-		}
+		_grow_proj_normal /= max(length(_grow_proj_normal), 1e-6);
 		_grow_clip_vertex.xy += _grow_proj_normal * grow * _grow_clip_vertex.w;
 		POSITION = _grow_clip_vertex;
 	}

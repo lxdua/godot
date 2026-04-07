@@ -4158,7 +4158,7 @@ void SceneTreeDock::_filter_changed(const String &p_filter) {
 		filter->set_tooltip_text(warning);
 	} else {
 		filter->remove_theme_icon_override(SNAME("clear"));
-		filter->set_tooltip_text(TTR("Filter nodes by entering a part of their name, type (if prefixed with \"type:\" or \"t:\")\nor group (if prefixed with \"group:\" or \"g:\"). Filtering is case-insensitive."));
+		filter->set_tooltip_text(TTR("Filter nodes by entering a part of their name, type (if prefixed with \"type:\" or \"t:\"),\ngroup (if prefixed with \"group:\" or \"g:\"), or gameplay tag (if prefixed with \"tag:\"). Filtering is case-insensitive."));
 	}
 }
 
@@ -4194,6 +4194,9 @@ void SceneTreeDock::_filter_option_selected(int p_option) {
 		case FILTER_BY_GROUP: {
 			filter_parameter = "group";
 		} break;
+		case FILTER_BY_TAG: {
+			filter_parameter = "tag";
+		} break;
 	}
 
 	if (!filter_parameter.is_empty()) {
@@ -4213,6 +4216,9 @@ void SceneTreeDock::_append_filter_options_to(PopupMenu *p_menu) {
 
 	p_menu->add_item(TTRC("Filter by Group"), FILTER_BY_GROUP);
 	p_menu->set_item_tooltip(-1, TTRC("Selects all Nodes belonging to the given group.\nIf empty, selects any Node belonging to any group.\nInserts \"group:\". You can also use the shorthand \"g:\"."));
+
+	p_menu->add_item(TTRC("Filter by Gameplay Tag"), FILTER_BY_TAG);
+	p_menu->set_item_tooltip(-1, TTRC("Selects all Nodes that have a matching gameplay tag.\nIf empty, selects any Node that has any gameplay tag.\nInserts \"tag:\"."));
 }
 
 String SceneTreeDock::get_filter() {
@@ -4979,7 +4985,7 @@ SceneTreeDock::SceneTreeDock(Node *p_scene_root, EditorSelection *p_editor_selec
 	filter->set_h_size_flags(SIZE_EXPAND_FILL);
 	filter->set_placeholder(TTRC("Filter Nodes"));
 	filter->set_accessibility_name(TTRC("Filter Nodes"));
-	filter->set_tooltip_text(TTRC("Filter nodes by entering a part of their name, type (if prefixed with \"type:\" or \"t:\")\nor group (if prefixed with \"group:\" or \"g:\"). Filtering is case-insensitive."));
+	filter->set_tooltip_text(TTRC("Filter nodes by entering a part of their name, type (if prefixed with \"type:\" or \"t:\"),\ngroup (if prefixed with \"group:\" or \"g:\"), or gameplay tag (if prefixed with \"tag:\"). Filtering is case-insensitive."));
 	filter_hbc->add_child(filter);
 	filter->add_theme_constant_override("minimum_character_width", 0);
 	filter->connect(SceneStringName(text_changed), callable_mp(this, &SceneTreeDock::_filter_changed));

@@ -2577,6 +2577,20 @@ bool Node::has_gameplay_tag_exact(const StringName &p_tag_name) const {
 	return data.gameplay_tags->has_tag_exact_name(p_tag_name);
 }
 
+TypedArray<Node> Node::find_children_by_tag(const StringName &p_tag_name, bool p_recursive) const {
+	TypedArray<Node> result;
+	for (int i = 0; i < get_child_count(); i++) {
+		Node *child = get_child(i);
+		if (child->has_gameplay_tag(p_tag_name)) {
+			result.push_back(child);
+		}
+		if (p_recursive) {
+			result.append_array(child->find_children_by_tag(p_tag_name, true));
+		}
+	}
+	return result;
+}
+
 void Node::print_tree_pretty() {
 	print_line(_get_tree_string_pretty("", true));
 }
@@ -3827,6 +3841,7 @@ void Node::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("remove_gameplay_tag", "tag_name"), &Node::remove_gameplay_tag);
 	ClassDB::bind_method(D_METHOD("has_gameplay_tag", "tag_name"), &Node::has_gameplay_tag);
 	ClassDB::bind_method(D_METHOD("has_gameplay_tag_exact", "tag_name"), &Node::has_gameplay_tag_exact);
+	ClassDB::bind_method(D_METHOD("find_children_by_tag", "tag_name", "recursive"), &Node::find_children_by_tag, DEFVAL(true));
 
 	ClassDB::bind_method(D_METHOD("move_child", "child_node", "to_index"), &Node::move_child);
 	ClassDB::bind_method(D_METHOD("get_groups"), &Node::_get_groups);

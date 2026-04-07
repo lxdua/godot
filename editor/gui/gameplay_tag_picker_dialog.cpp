@@ -220,11 +220,19 @@ void GameplayTagPickerDialog::set_selected_tags(const PackedStringArray &p_tags)
 		kv.value->set_checked(0, false);
 	}
 
-	// Check the specified tags.
+	// Check the specified tags and expand their ancestor nodes.
 	for (int i = 0; i < p_tags.size(); i++) {
 		StringName tag_sn = StringName(p_tags[i]);
 		if (tag_items.has(tag_sn)) {
-			tag_items[tag_sn]->set_checked(0, true);
+			TreeItem *item = tag_items[tag_sn];
+			item->set_checked(0, true);
+
+			// Expand all ancestor nodes so the checked item is visible.
+			TreeItem *parent = item->get_parent();
+			while (parent && parent != tag_tree->get_root()) {
+				parent->set_collapsed(false);
+				parent = parent->get_parent();
+			}
 		}
 	}
 }

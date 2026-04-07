@@ -589,6 +589,7 @@ public:
 	void remove_gameplay_tag(const StringName &p_tag_name);
 	bool has_gameplay_tag(const StringName &p_tag_name) const;
 	bool has_gameplay_tag_exact(const StringName &p_tag_name) const;
+	TypedArray<Node> find_children_by_tag(const StringName &p_tag_name, bool p_recursive = true) const;
 
 	void move_child(RequiredParam<Node> rp_child, int p_index);
 	void _move_child(Node *p_child, int p_index, bool p_ignore_end = false);

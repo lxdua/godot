@@ -530,9 +530,9 @@ if enemy.has_gameplay_tag("Enemy.Rank.Boss"): # true
 - [x] 编辑器：GameplayTagEditorPlugin（Inspector 属性编辑器）
 - [x] 编辑器：修复 Tree 勾选模式下文字消失（`set_cell_mode` 在 `set_text` 之前）
 - [x] 编辑器：修复 Picker Dialog 打开时不还原已选 Tag（pending selection 机制）
-- [ ] 编辑器：Picker Dialog 展开含已选 Tag 的树节点（选了 `Damage.Fire.DoT` 时自动展开 Damage → Fire）
-- [ ] 编辑器：SceneTree 按 Tag 搜索/过滤节点
-- [ ] Node 集成：`find_children_by_tag()` 等按标签查找节点的便捷方法
+- [x] 编辑器：Picker Dialog 展开含已选 Tag 的树节点（选了 `Damage.Fire.DoT` 时自动展开 Damage → Fire）
+- [x] 编辑器：SceneTree 按 Tag 搜索/过滤节点（`tag:` 前缀过滤 + 右键菜单快捷入口）
+- [x] Node 集成：`find_children_by_tag(tag_name, recursive)` 按标签查找子节点
 
 ### 待实现方案备忘
 

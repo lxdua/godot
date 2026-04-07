@@ -32,6 +32,7 @@
 
 #include "core/config/engine.h"
 #include "core/config/project_settings.h"
+#include "core/gameplay_tag/gameplay_tag_container.h"
 #include "core/io/resource_loader.h"
 #include "core/object/callable_mp.h"
 #include "core/object/class_db.h"
@@ -1214,6 +1215,34 @@ bool SceneTreeEditor::_item_matches_all_terms(TreeItem *p_item, const PackedStri
 						}
 					}
 					if (!term_in_groups) {
+						return false;
+					}
+				}
+			} else if (parameter == "tag") {
+				// Filter by Gameplay Tag.
+				Node *node = get_node(p_item->get_metadata(0));
+
+				if (argument.is_empty()) {
+					// When argument is empty, match all Nodes that have any gameplay tag.
+					Ref<GameplayTagContainer> tags = node->get_gameplay_tags();
+					if (tags.is_null() || tags->get_tag_count() == 0) {
+						return false;
+					}
+				} else {
+					// Match nodes that have a tag containing the argument (hierarchical match).
+					Ref<GameplayTagContainer> tags = node->get_gameplay_tags();
+					if (tags.is_null()) {
+						return false;
+					}
+					PackedStringArray tag_names = tags->get_tag_names();
+					bool term_in_tags = false;
+					for (int t = 0; t < tag_names.size(); t++) {
+						if (tag_names[t].to_lower().contains(argument)) {
+							term_in_tags = true;
+							break;
+						}
+					}
+					if (!term_in_tags) {
 						return false;
 					}
 				}
