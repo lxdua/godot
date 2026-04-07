@@ -45,6 +45,12 @@
 #include "core/extension/gdextension_manager.h"
 #include "core/extension/gdextension_resource_format.h"
 #include "core/extension/godot_instance.h"
+#include "core/input/enhanced_input_action.h"
+#include "core/input/enhanced_input_action_value.h"
+#include "core/input/enhanced_input_modifier.h"
+#include "core/input/enhanced_input_trigger.h"
+#include "core/input/enhanced_input_mapping_context.h"
+#include "core/input/enhanced_input_manager.h"
 #include "core/input/input.h"
 #include "core/input/input_map.h"
 #include "core/input/shortcut.h"
@@ -119,6 +125,7 @@ static IP *ip = nullptr;
 static Time *_time = nullptr;
 
 static GameplayTagManager *gameplay_tag_manager = nullptr;
+static EnhancedInputManager *enhanced_input_manager = nullptr;
 
 static CoreBind::Geometry2D *_geometry_2d = nullptr;
 static CoreBind::Geometry3D *_geometry_3d = nullptr;
@@ -313,6 +320,36 @@ void register_core_types() {
 	GDREGISTER_CLASS(GameplayTagManager);
 	gameplay_tag_manager = memnew(GameplayTagManager);
 
+	// Enhanced Input system.
+	GDREGISTER_CLASS(InputActionValue);
+	GDREGISTER_CLASS(InputAction);
+
+	GDREGISTER_VIRTUAL_CLASS(InputModifier);
+	GDREGISTER_CLASS(InputModifierDeadZone);
+	GDREGISTER_CLASS(InputModifierScalar);
+	GDREGISTER_CLASS(InputModifierNegate);
+	GDREGISTER_CLASS(InputModifierSmooth);
+	GDREGISTER_CLASS(InputModifierResponseCurve);
+	GDREGISTER_CLASS(InputModifierSwizzle);
+	GDREGISTER_CLASS(InputModifierNormalize);
+	GDREGISTER_CLASS(InputModifierClamp);
+
+	GDREGISTER_VIRTUAL_CLASS(InputTrigger);
+	GDREGISTER_CLASS(InputTriggerDown);
+	GDREGISTER_CLASS(InputTriggerPressed);
+	GDREGISTER_CLASS(InputTriggerReleased);
+	GDREGISTER_CLASS(InputTriggerHold);
+	GDREGISTER_CLASS(InputTriggerHoldAndRelease);
+	GDREGISTER_CLASS(InputTriggerTap);
+	GDREGISTER_CLASS(InputTriggerPulse);
+	GDREGISTER_CLASS(InputTriggerChordAction);
+
+	GDREGISTER_CLASS(InputActionMapping);
+	GDREGISTER_CLASS(InputMappingContext);
+
+	GDREGISTER_CLASS(EnhancedInputManager);
+	enhanced_input_manager = memnew(EnhancedInputManager);
+
 	resource_uid = memnew(ResourceUID);
 
 	gdextension_manager = memnew(GDExtensionManager);
@@ -402,6 +439,7 @@ void register_core_singletons() {
 	Engine::get_singleton()->add_singleton(Engine::Singleton("ResourceUID", ResourceUID::get_singleton()));
 	Engine::get_singleton()->add_singleton(Engine::Singleton("WorkerThreadPool", worker_thread_pool));
 	Engine::get_singleton()->add_singleton(Engine::Singleton("GameplayTagManager", GameplayTagManager::get_singleton()));
+	Engine::get_singleton()->add_singleton(Engine::Singleton("EnhancedInput", EnhancedInputManager::get_singleton()));
 
 	OS::get_singleton()->benchmark_end_measure("Core", "Register Singletons");
 }
@@ -450,6 +488,11 @@ void unregister_core_types() {
 	memdelete(gdextension_manager);
 
 	memdelete(resource_uid);
+
+	if (enhanced_input_manager) {
+		memdelete(enhanced_input_manager);
+		enhanced_input_manager = nullptr;
+	}
 
 	if (gameplay_tag_manager) {
 		memdelete(gameplay_tag_manager);

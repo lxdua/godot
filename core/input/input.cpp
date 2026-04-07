@@ -34,6 +34,7 @@
 #include "core/config/engine.h"
 #include "core/config/project_settings.h"
 #include "core/input/default_controller_mappings.h"
+#include "core/input/enhanced_input_manager.h"
 #include "core/input/input_map.h"
 #include "core/object/class_db.h"
 #include "core/os/os.h"
@@ -1040,6 +1041,11 @@ void Input::_parse_input_event_impl(const Ref<InputEvent> &p_event, bool p_is_em
 			action_state.released_physics_frame = Engine::get_singleton()->get_physics_frames() + 1;
 			action_state.released_process_frame = Engine::get_singleton()->get_process_frames();
 		}
+	}
+
+	// Forward to Enhanced Input system.
+	if (EnhancedInputManager::get_singleton()) {
+		EnhancedInputManager::get_singleton()->process_input_event(p_event);
 	}
 
 	if (event_dispatch_function) {

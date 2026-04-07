@@ -34,6 +34,7 @@ STATIC_ASSERT_INCOMPLETE_TYPE(class, RenderingServer);
 
 #include "core/config/engine.h"
 #include "core/config/project_settings.h"
+#include "core/input/enhanced_input_manager.h"
 #include "core/input/input.h"
 #include "core/io/image_loader.h"
 #include "core/io/resource_loader.h"
@@ -704,6 +705,11 @@ bool SceneTree::process(double p_time) {
 		for (KeyValue<NodePath, Ref<MultiplayerAPI>> &E : custom_multiplayers) {
 			E.value->poll();
 		}
+	}
+
+	// Tick Enhanced Input system (modifiers, triggers, signals).
+	if (EnhancedInputManager::get_singleton()) {
+		EnhancedInputManager::get_singleton()->tick(p_time);
 	}
 
 	emit_signal(SNAME("process_frame"));

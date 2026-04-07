@@ -51,12 +51,12 @@ core/input/
 ├── input.h/.cpp                          ← 现有，不改动
 ├── input_map.h/.cpp                      ← 现有，不改动
 ├── input_event.h/.cpp                    ← 现有，不改动
+├── enhanced_input_action_value.h/.cpp    ← 新增：InputActionValue 多类型值
 ├── enhanced_input_action.h/.cpp          ← 新增：InputAction 资源
-├── enhanced_input_mapping_context.h/.cpp ← 新增：InputMappingContext 资源
-├── enhanced_input_modifier.h/.cpp        ← 新增：InputModifier 基类 + 内置修饰器
-├── enhanced_input_trigger.h/.cpp         ← 新增：InputTrigger 基类 + 内置触发器
-├── enhanced_input_manager.h/.cpp         ← 新增：EnhancedInputManager 单例
-└── enhanced_input_value.h/.cpp           ← 新增：InputActionValue 多类型值
+├── enhanced_input_mapping_context.h/.cpp ← 新增：InputActionMapping + InputMappingContext 资源
+├── enhanced_input_modifier.h/.cpp        ← 新增：InputModifier 基类 + 8 个内置修饰器
+├── enhanced_input_trigger.h/.cpp         ← 新增：InputTrigger 基类 + 8 个内置触发器
+└── enhanced_input_manager.h/.cpp         ← 新增：EnhancedInputManager 单例（GDScript 中通过 EnhancedInput 访问）
 ```
 
 ---
@@ -74,7 +74,7 @@ Godot 现有 Action 只输出 bool + float。但实际游戏中：
 ### 类定义
 
 ```cpp
-// core/input/enhanced_input_value.h
+// core/input/enhanced_input_action_value.h
 class InputActionValue : public RefCounted {
     GDCLASS(InputActionValue, RefCounted);
 
@@ -141,22 +141,16 @@ class InputAction : public Resource {
     GDCLASS(InputAction, Resource);
 
 public:
-    // 复用 InputActionValue::ValueType
     using ValueType = InputActionValue::ValueType;
 
-private:
-    StringName action_name;
-    ValueType value_type = ValueType::BOOL;
-    String description;
-
-    // 是否在每帧持续触发（Ongoing），还是只在状态变化时触发
-    bool consume_input = true;
-
-    // 累积模式：多个绑定同时激活时的合并策略
     enum AccumulationMode {
         CUMULATIVE,   // 累加（适合移动：WASD 四个键各贡献一个方向）
         TAKE_HIGHEST, // 取最大值
     };
+
+private:
+    StringName action_name;
+    ValueType value_type = ValueType::BOOL;
     AccumulationMode accumulation_mode = CUMULATIVE;
 
 protected:
@@ -169,16 +163,12 @@ public:
     void set_value_type(ValueType p_type);
     ValueType get_value_type() const;
 
-    void set_description(const String &p_desc);
-    String get_description() const;
-
-    void set_consume_input(bool p_consume);
-    bool get_consume_input() const;
-
     void set_accumulation_mode(AccumulationMode p_mode);
     AccumulationMode get_accumulation_mode() const;
 };
 ```
+
+> **注意**：`consume_input` 已移至 `InputActionMapping`（按绑定粒度控制消费，与 UE 一致）。`description` 已移除（减少 Inspector 空间占用）。
 
 ### GDScript 使用
 
@@ -304,8 +294,9 @@ enum TriggerState {
     TRIGGER_NONE,      // 未触发
     TRIGGER_ONGOING,   // 正在进行中（如正在按住，但还没达到触发条件）
     TRIGGER_TRIGGERED, // 已触发
-    TRIGGER_CANCELED,  // 取消（如长按中途松手）
 };
+// 注意：没有 CANCELED 状态。Canceled 是信号层面的概念
+// （ONGOING → NONE 时发送 action_canceled 信号），不是 TriggerState 枚举值。
 
 enum TriggerEvent {
     TRIGGER_EVENT_NONE      = 0,
@@ -326,19 +317,19 @@ class InputTrigger : public Resource {
 
 protected:
     static void _bind_methods();
-    GDVIRTUAL3R(int, _update_state, int, Vector3, float);
-    // (current_state, value, delta_time) -> new TriggerState
+    GDVIRTUAL3R(int, _update_state, int, Vector3, double);
+    // GDScript 可重写 _update_state(current_state, value, delta) -> new TriggerState
 
 public:
+    // C++ 接口：带 r_elapsed 引用参数，运行时状态由 Manager 外部管理
     virtual TriggerState update_state(
         TriggerState p_current_state,
-        Vector3 p_value,
-        float p_delta
-    ) const;
+        const Vector3 &p_value,
+        double p_delta,
+        float &r_elapsed   // 外部传入的计时器，触发器 Resource 不存运行时状态
+    );
 
-    // 此触发器是否是"隐式的"
-    // 隐式触发器：如果 Action 没有配置任何触发器，默认使用 InputTriggerDown
-    virtual bool is_implicit() const { return false; }
+    // 注意：如果 Action 没有配置任何触发器，Manager 会默认使用 InputTriggerDown 行为
 };
 ```
 
@@ -364,7 +355,8 @@ class InputTriggerHold : public InputTrigger {
 private:
     float hold_time = 0.5f;  // 需要按住的时间（秒）
     bool one_shot = false;    // true = 只触发一次，false = 达到后每帧触发
-    float elapsed = 0.0f;     // 内部计时器（运行时状态）
+    // 注意：没有 elapsed 成员变量！
+    // 计时器通过 update_state 的 r_elapsed 引用参数从外部（MappingState）传入
 
 protected:
     static void _bind_methods();
@@ -372,13 +364,14 @@ protected:
 public:
     virtual TriggerState update_state(
         TriggerState p_current_state,
-        Vector3 p_value,
-        float p_delta
-    ) const override;
-    // 值非零时累加 elapsed
-    // elapsed < hold_time → ONGOING
-    // elapsed >= hold_time → TRIGGERED
-    // 值归零 → NONE（重置 elapsed）
+        const Vector3 &p_value,
+        double p_delta,
+        float &r_elapsed
+    ) override;
+    // 值非零时累加 r_elapsed
+    // r_elapsed < hold_time → ONGOING
+    // r_elapsed >= hold_time → TRIGGERED
+    // 值归零 → NONE（重置 r_elapsed）
 };
 ```
 
@@ -430,6 +423,7 @@ private:
     Ref<InputEvent> input_event;  // 复用 Godot 现有的 InputEvent 体系
     TypedArray<InputModifier> modifiers;  // 修饰器链
     TypedArray<InputTrigger> triggers;    // 触发器列表
+    bool consume_input = true;    // 是否消费输入：匹配后阻止低优先级上下文收到同一物理按键
 
 protected:
     static void _bind_methods();
@@ -448,6 +442,9 @@ public:
     void set_triggers(const TypedArray<InputTrigger> &p_triggers);
     TypedArray<InputTrigger> get_triggers() const;
     void add_trigger(const Ref<InputTrigger> &p_trigger);
+
+    void set_consume_input(bool p_consume);
+    bool get_consume_input() const;
 };
 
 // 输入映射上下文
@@ -456,7 +453,6 @@ class InputMappingContext : public Resource {
 
 private:
     StringName context_name;
-    String description;
     TypedArray<InputActionMapping> mappings;
 
 protected:
@@ -465,9 +461,6 @@ protected:
 public:
     void set_context_name(const StringName &p_name);
     StringName get_context_name() const;
-
-    void set_description(const String &p_desc);
-    String get_description() const;
 
     void set_mappings(const TypedArray<InputActionMapping> &p_mappings);
     TypedArray<InputActionMapping> get_mappings() const;
@@ -515,97 +508,73 @@ public:
 
 ```cpp
 // core/input/enhanced_input_manager.h
+// GDScript 中通过 EnhancedInput 单例名访问（而非 EnhancedInputManager）
 class EnhancedInputManager : public Object {
     GDCLASS(EnhancedInputManager, Object);
 
 private:
-    static inline EnhancedInputManager *singleton = nullptr;
+    static EnhancedInputManager *singleton;
 
     struct ContextEntry {
         Ref<InputMappingContext> context;
         int priority = 0;
-        bool enabled = true;
     };
 
-    // 按 priority 降序排列
-    Vector<ContextEntry> context_stack;
+    Vector<ContextEntry> context_stack; // 按 priority 降序排列
 
-    struct ActionInstance {
+    // 每个 InputActionMapping 的运行时状态
+    struct MappingState {
+        Ref<InputActionMapping> mapping;
+        Vector3 raw_value;         // 当前原始输入值
+        bool value_active = false;
+        Vector<TriggerState> trigger_states;  // 每个触发器的状态
+        Vector<float> trigger_elapsed;        // 每个触发器的计时器
+    };
+
+    // 每个 InputAction 的运行时状态
+    struct ActionState {
         Ref<InputAction> action;
-        Vector3 current_value;        // 当前值（经过修饰后）
-        TriggerState trigger_state;   // 当前触发状态
-        TriggerState last_trigger_state;
-        float elapsed_time;           // 自开始触发以来的时间
+        Vector3 accumulated_value;            // 修饰+累积后的值
+        TriggerState trigger_state = TRIGGER_NONE;
+        TriggerState last_trigger_state = TRIGGER_NONE;
+        float elapsed_time = 0.0f;
+        Vector<MappingState *> mapping_states; // 所有指向此 Action 的 mapping
     };
 
-    HashMap<StringName, ActionInstance> action_instances;
+    Vector<MappingState> all_mapping_states;
+    HashMap<StringName, ActionState> action_states;
 
-protected:
-    static void _bind_methods();
+    // Per-action 绑定
+    struct ActionBinding {
+        StringName action_name;
+        TriggerEvent event_type; // 使用 TriggerEvent 枚举，支持自动补全
+        Callable callable;
+    };
+    Vector<ActionBinding> action_bindings;
 
 public:
     static EnhancedInputManager *get_singleton();
 
     // === 上下文管理 ===
-
-    // 推入一个映射上下文。
-    void push_mapping_context(
-        const Ref<InputMappingContext> &p_context,
-        int p_priority = 0
-    );
-
-    // 移除一个映射上下文。
-    void pop_mapping_context(
-        const Ref<InputMappingContext> &p_context
-    );
-
-    // 清空所有上下文。
+    void push_mapping_context(const Ref<InputMappingContext> &p_context, int p_priority = 0);
+    void pop_mapping_context(const Ref<InputMappingContext> &p_context);
     void clear_all_contexts();
-
-    // 检查某个上下文是否在栈中。
-    bool has_mapping_context(
-        const Ref<InputMappingContext> &p_context
-    ) const;
-
-    // 获取所有活跃的上下文。
+    bool has_mapping_context(const Ref<InputMappingContext> &p_context) const;
     TypedArray<InputMappingContext> get_active_contexts() const;
 
     // === 输入查询 ===
+    Ref<InputActionValue> get_action_value(const Ref<InputAction> &p_action) const;
+    bool is_action_triggered(const Ref<InputAction> &p_action) const;
+    int get_action_trigger_state(const Ref<InputAction> &p_action) const;
+    float get_action_elapsed_time(const Ref<InputAction> &p_action) const;
 
-    // 获取 Action 的当前值。
-    Ref<InputActionValue> get_action_value(
-        const Ref<InputAction> &p_action
-    ) const;
+    // === Per-Action 绑定（使用 TriggerEvent 枚举） ===
+    void bind_action(const Ref<InputAction> &p_action, TriggerEvent p_event_type, const Callable &p_callable);
+    void unbind_action(const Ref<InputAction> &p_action, TriggerEvent p_event_type, const Callable &p_callable);
 
-    // Action 是否正在 Triggered 状态。
-    bool is_action_triggered(
-        const Ref<InputAction> &p_action
-    ) const;
-
-    // 获取 Action 的当前触发状态。
-    TriggerState get_action_trigger_state(
-        const Ref<InputAction> &p_action
-    ) const;
-
-    // Action 触发已持续的时间。
-    float get_action_elapsed_time(
-        const Ref<InputAction> &p_action
-    ) const;
-
-    // === 核心处理 ===
-
-    // 由 Input 单例每帧调用（或在 _parse_input_event 中调用）
-    void process_input_event(const Ref<InputEvent> &p_event);
-    void tick(float p_delta);  // 每帧更新触发器状态
-
-    // === 信号 ===
-    // action_triggered(action: InputAction, value: InputActionValue, state: int)
-    // action_started(action: InputAction, value: InputActionValue)
-    // action_ongoing(action: InputAction, value: InputActionValue)
-    // action_completed(action: InputAction, value: InputActionValue)
-    // action_canceled(action: InputAction, value: InputActionValue)
-    // context_pushed(context: InputMappingContext)
-    // context_popped(context: InputMappingContext)
+    // === 核心处理（由引擎内部调用） ===
+    void process_input_event(const Ref<InputEvent> &p_event); // Input 转发事件
+    void tick(double p_delta);  // SceneTree 每帧调用
 };
 ```
 
@@ -700,21 +669,23 @@ func _ready():
     on_foot_context.context_name = "OnFoot"
 
     # WASD 移动（四个键组合为 Vector2）
-    _map_key(on_foot_context, move_action, KEY_W, Vector3(0, 1, 0))
-    _map_key(on_foot_context, move_action, KEY_S, Vector3(0, -1, 0))
-    _map_key(on_foot_context, move_action, KEY_A, Vector3(-1, 0, 0))
-    _map_key(on_foot_context, move_action, KEY_D, Vector3(1, 0, 0))
+    # 键盘按下的原始值是 (1,0,0)，需要用 Swizzle/Negate 把值搬到正确的分量
+    _map_move_key(on_foot_context, move_action, KEY_W, true, true)   # W: swizzle→(0,1,0)→negate Y→(0,-1,0)
+    _map_move_key(on_foot_context, move_action, KEY_S, true, false)  # S: swizzle→(0,1,0)
+    _map_move_key(on_foot_context, move_action, KEY_A, false, true)  # A: negate X→(-1,0,0)
+    _map_move_key(on_foot_context, move_action, KEY_D, false, false) # D: (1,0,0) 无需修饰
 
     # 空格跳跃
-    var jump_mapping = on_foot_context.map_action(jump_action,
-        InputEventKey.create_reference(KEY_SPACE))
+    var space_key = InputEventKey.new()
+    space_key.keycode = KEY_SPACE
+    var jump_mapping = on_foot_context.map_action(jump_action, space_key)
     jump_mapping.add_trigger(InputTriggerPressed.new())  # 按下瞬间触发
 
     # 推入上下文
-    EnhancedInputManager.push_mapping_context(on_foot_context, 0)
+    EnhancedInput.push_mapping_context(on_foot_context, 0)
 
     # 连接信号
-    EnhancedInputManager.action_triggered.connect(_on_action_triggered)
+    EnhancedInput.action_triggered.connect(_on_action_triggered)
 
 func _on_action_triggered(action: InputAction, value: InputActionValue, state: int):
     if action == jump_action:
@@ -723,19 +694,29 @@ func _on_action_triggered(action: InputAction, value: InputActionValue, state: i
 
 func _physics_process(delta):
     # 直接查询移动值
-    var move_value = EnhancedInputManager.get_action_value(move_action)
+    var move_value = EnhancedInput.get_action_value(move_action)
     if move_value:
         var dir = move_value.get_vector2()
         velocity.x = dir.x * speed
         velocity.z = dir.y * speed
     move_and_slide()
 
-func _map_key(ctx, action, key, direction):
-    var mapping = ctx.map_action(action,
-        InputEventKey.create_reference(key))
-    var scalar = InputModifierScalar.new()
-    scalar.scale = direction
-    mapping.add_modifier(scalar)
+# 键盘原始值是 (1,0,0)，用 Swizzle 把 X 搬到 Y 轴，用 Negate 取反
+func _map_move_key(ctx, action, key, use_swizzle, use_negate):
+    var ev = InputEventKey.new()
+    ev.keycode = key
+    var mapping = ctx.map_action(action, ev)
+    if use_swizzle:
+        var swizzle = InputModifierSwizzle.new()
+        swizzle.order = InputModifierSwizzle.SWIZZLE_YXZ  # (1,0,0) → (0,1,0)
+        mapping.add_modifier(swizzle)
+    if use_negate:
+        var neg = InputModifierNegate.new()
+        if use_swizzle:
+            neg.negate_y = true   # 反转 Y（前进方向）
+        else:
+            neg.negate_x = true   # 反转 X（左移方向）
+        mapping.add_modifier(neg)
 ```
 
 ### 示例 2：上下文切换（步行 vs 载具）
@@ -748,12 +729,12 @@ var exit_vehicle_action: InputAction
 
 func enter_vehicle():
     # 推入载具上下文（更高优先级）
-    EnhancedInputManager.push_mapping_context(vehicle_ctx, 50)
+    EnhancedInput.push_mapping_context(vehicle_ctx, 50)
     # 同一个 E 键，在载具上下文中是"下车"
 
 func exit_vehicle():
     # 移除载具上下文，回到步行
-    EnhancedInputManager.pop_mapping_context(vehicle_ctx)
+    EnhancedInput.pop_mapping_context(vehicle_ctx)
     # E 键自动恢复为步行上下文中的"交互"
 ```
 
@@ -775,13 +756,13 @@ func _ready():
     trigger.hold_time = 0.5
     mapping.add_trigger(trigger)
 
-    EnhancedInputManager.action_ongoing.connect(func(action, value):
+    EnhancedInput.action_ongoing.connect(func(action, value):
         if action == attack_action:
             # 正在蓄力，更新 UI
-            charge_bar.value = EnhancedInputManager.get_action_elapsed_time(action)
+            charge_bar.value = EnhancedInput.get_action_elapsed_time(action)
     )
 
-    EnhancedInputManager.action_triggered.connect(func(action, value):
+    EnhancedInput.action_triggered.connect(func(action, value):
         if action == attack_action:
             # 蓄力释放！伤害 = 蓄力时间
             var charge_time = value.get_float()
@@ -799,7 +780,7 @@ extends CharacterBody3D
 @export var movement_context: InputMappingContext
 
 func _ready():
-    EnhancedInputManager.push_mapping_context(movement_context)
+    EnhancedInput.push_mapping_context(movement_context)
 ```
 
 ---
@@ -810,7 +791,7 @@ func _ready():
 
 | 文件 | 说明 |
 |------|------|
-| `core/input/enhanced_input_value.h/.cpp` | InputActionValue 多类型值 |
+| `core/input/enhanced_input_action_value.h/.cpp` | InputActionValue 多类型值 |
 | `core/input/enhanced_input_action.h/.cpp` | InputAction 资源 |
 | `core/input/enhanced_input_modifier.h/.cpp` | InputModifier 基类 + 所有内置修饰器 |
 | `core/input/enhanced_input_trigger.h/.cpp` | InputTrigger 基类 + 所有内置触发器 |
@@ -821,7 +802,7 @@ func _ready():
 
 | 文件 | 修改内容 |
 |------|---------|
-| `core/input/SCsub` | 添加新文件到构建 |
+| `core/input/SCsub` | 无需修改（已有 `*.cpp` 通配自动收集） |
 | `core/register_core_types.cpp` | 注册所有新类型、创建/销毁 EnhancedInputManager 单例 |
 | `core/input/input.cpp` | 在 `_parse_input_event_impl` 中转发事件给 EnhancedInputManager |
 | `scene/main/scene_tree.cpp` | 在帧循环中调用 `EnhancedInputManager::tick(delta)` |
@@ -914,10 +895,87 @@ Godot 已有完善的 `InputEvent` 体系（键盘、鼠标、手柄、触屏）
 ### 4. WASD 四个键如何合并为 Vector2？
 
 - 每个键映射到同一个 `InputAction`（value_type = Vector2）
-- 每个键通过 `InputModifierScalar` 设置方向（如 W → (0,1,0)）
+- 键盘按下的原始值始终是 `(1, 0, 0)`（X=1），不能用 `Scalar` 做方向映射（逐分量乘法会把非 X 轴的值乘以零）
+- 正确做法：用 `InputModifierSwizzle`（YXZ）把 X 值搬到 Y 轴，再用 `InputModifierNegate` 取反
+  - W → Swizzle YXZ → (0,1,0) → Negate Y → (0,-1,0)
+  - S → Swizzle YXZ → (0,1,0)
+  - A → Negate X → (-1,0,0)
+  - D → 无修饰 → (1,0,0)
 - Action 的 `accumulation_mode = CUMULATIVE` 将四个键的值累加
 - 最终得到 Vector2 方向
 
 ### 5. 是否需要 PlayerIndex / 本地多人支持？
 
 初版不考虑，所有输入默认属于单一玩家。后续可通过给上下文绑定 device ID 实现多人。
+
+---
+
+## 十六、已知优化点（非阻塞）
+
+> 以下是 code review 过程中发现的可优化项，当前不影响功能，优先级较低，后续迭代时可考虑。
+
+### 1. tick() 每帧分配 InputActionValue 对象
+
+**位置**：`EnhancedInputManager::tick()` → 构建 `InputActionValue` 用于信号和回调
+
+**现象**：每帧对每个活跃的 Action 都会 `memnew(InputActionValue)` 创建一个 RefCounted 对象，产生微小的堆分配和引用计数开销。
+
+**优化方案**：在 `ActionState` 中缓存一个 `Ref<InputActionValue>` 成员，每帧只更新其内部 `raw` 值，而不是重新分配对象。
+
+**影响**：微小 GC 压力。活跃 Action 数量通常 < 10，实际影响极低。
+
+---
+
+### 2. InputModifierSmooth 运行时状态存在 Resource 上
+
+**位置**：`InputModifierSmooth::current_value` 成员变量
+
+**现象**：`InputModifierSmooth` 继承自 `Resource`，但 `current_value` 是运行时插值状态。如果多个 `InputActionMapping` 共享同一个 `InputModifierSmooth` 实例（比如通过 `.tres` 资源引用），它们的平滑状态会互相干扰。
+
+**优化方案**：
+- 方案 A：在 `MappingState` 中为每个 modifier 维护独立的运行时状态（类似 trigger 的 `elapsed` 外部管理）
+- 方案 B：文档中明确说明 Smooth 修饰器不应跨 mapping 共享（当前实际使用中极少共享，影响很小）
+
+**影响**：仅在多个 mapping 共享同一 Smooth 资源实例时出现。实际项目中通常每个 mapping 各自 `new()` 一个，所以问题极罕见。
+
+---
+
+### 3. _event_matches_mapping 多次 Ref 类型转换
+
+**位置**：`EnhancedInputManager::_event_matches_mapping()`
+
+**现象**：每次输入事件到达时，对每个 mapping 做 `Object::cast_to<InputEventKey>()`、`Object::cast_to<InputEventMouseButton>()` 等多次动态类型判断。
+
+**优化方案**：
+- 方案 A：在 `MappingState` 构建时预缓存 mapping 的事件类型标记（枚举），匹配时先比较枚举跳过不匹配的类型
+- 方案 B：按事件类型分组存储 mapping，事件到达时直接查对应组
+
+**影响**：输入事件频率远低于渲染帧率（通常每秒几十次），cast_to 本身也很快（虚表指针比较），实际无性能瓶颈。
+
+---
+
+### 4. 上下文栈排序使用插入排序
+
+**位置**：`EnhancedInputManager::push_mapping_context()` 中的排序逻辑
+
+**现象**：当前使用手动插入排序维护 `context_stack` 的优先级顺序。
+
+**说明**：这实际上是**正确的选择**，因为：
+- 上下文栈通常只有 2~5 个元素
+- push/pop 操作频率极低（场景切换级别）
+- 插入排序对小数组效率最高，且避免了 Godot `Vector::sort_custom` 不支持 lambda 的问题
+
+**状态**：✅ 无需优化，仅作记录。
+
+---
+
+### 5. 未来可扩展方向
+
+| 方向 | 说明 | 优先级 |
+|------|------|--------|
+| 编辑器可视化编辑器 | Inspector 中用树形界面编辑 InputMappingContext，类似 UE 的面板 | ⭐⭐⭐ |
+| 输入调试面板 | 运行时显示所有 Action 的当前值、触发状态、上下文栈 | ⭐⭐ |
+| 本地多人支持 | 给上下文绑定 device ID，支持分屏多人 | ⭐⭐ |
+| GameplayTag 联动 | 按标签批量禁用/启用 Action | ⭐ |
+| 输入录制/回放 | 利用全局信号录制输入流，用于自动化测试 | ⭐ |
+| 触发器 ALL 模式 | 多个触发器全部满足才触发（当前只有 ANY 模式） | ⭐ |
