@@ -47,6 +47,7 @@
 class EditorVariantTypeOptionButton;
 class FileSystemDock;
 class GameplayTagSettingsEditor;
+class ProjectSettingsGDExtension;
 
 class ProjectSettingsEditor : public AcceptDialog {
 	GDCLASS(ProjectSettingsEditor, AcceptDialog);
@@ -72,6 +73,7 @@ class ProjectSettingsEditor : public AcceptDialog {
 	GroupSettingsEditor *group_settings = nullptr;
 	GameplayTagSettingsEditor *gameplay_tag_settings = nullptr;
 	EditorPluginSettings *plugin_settings = nullptr;
+	ProjectSettingsGDExtension *gdextension_settings = nullptr;
 
 	LineEdit *search_box = nullptr;
 	CheckButton *advanced = nullptr;

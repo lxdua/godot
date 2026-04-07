@@ -2995,6 +2995,11 @@ void Node3DEditorViewport::_cursor_interpolated() {
 	spatial_editor->update_grid();
 }
 
+void Node3DEditorViewport::_cursor_distance_scaled() {
+	zoom_indicator_delay = ZOOM_FREELOOK_INDICATOR_DELAY_S;
+	surface->queue_redraw();
+}
+
 void Node3DEditorViewport::_freelook_changed() {
 	spatial_editor->set_freelook_viewport(view_3d_controller->is_freelook_enabled() ? this : nullptr);
 }
@@ -7052,6 +7057,7 @@ Node3DEditorViewport::Node3DEditorViewport(Node3DEditor *p_spatial_editor, int p
 	view_3d_controller->connect("freelook_speed_scaled", callable_mp(this, &Node3DEditorViewport::_freelook_speed_scaled));
 	view_3d_controller->connect("cursor_panned", callable_mp(this, &Node3DEditorViewport::_disable_follow_mode));
 	view_3d_controller->connect("cursor_interpolated", callable_mp(this, &Node3DEditorViewport::_cursor_interpolated));
+	view_3d_controller->connect("cursor_distance_scaled", callable_mp(this, &Node3DEditorViewport::_cursor_distance_scaled));
 	_update_view_3d_controller(true);
 
 	_update_name();
@@ -7922,6 +7928,9 @@ void Node3DEditor::_menu_item_pressed(int p_option) {
 			tool_mode = (ToolMode)p_option;
 			update_transform_gizmo();
 
+			for (uint32_t i = 0; i < VIEWPORTS_COUNT; i++) {
+				viewports[i]->update_transform_gizmo_highlight();
+			}
 		} break;
 		case MENU_TRANSFORM_CONFIGURE_SNAP: {
 			snap_dialog->popup_centered(Size2(200, 180));
