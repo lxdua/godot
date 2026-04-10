@@ -1,76 +1,102 @@
-# Godot Engine
+# DuaDot Engine
 
-<p align="center">
-  <a href="https://godotengine.org">
-    <img src="logo_outlined.svg" width="400" alt="Godot Engine logo">
-  </a>
-</p>
+**基于 [Godot Engine](https://godotengine.org) 的定制游戏引擎**，专注于移动端游戏开发体验增强。在 Godot 强大的跨平台能力基础上，补充了移动端传感器、增强输入、后处理、对象池等实用功能。
 
-## 2D and 3D cross-platform game engine
+> 上游版本：Godot 4.x | 许可证：MIT
 
-**[Godot Engine](https://godotengine.org) is a feature-packed, cross-platform
-game engine to create 2D and 3D games from a unified interface.** It provides a
-comprehensive set of [common tools](https://godotengine.org/features), so that
-users can focus on making games without having to reinvent the wheel. Games can
-be exported with one click to a number of platforms, including the major desktop
-platforms (Linux, macOS, Windows), mobile platforms (Android, iOS), as well as
-Web-based platforms and [consoles](https://godotengine.org/consoles).
+---
 
-## Free, open source and community-driven
+## ✨ 新增功能
 
-Godot is completely free and open source under the very permissive [MIT license](https://godotengine.org/license).
-No strings attached, no royalties, nothing. The users' games are theirs, down
-to the last line of engine code. Godot's development is fully independent and
-community-driven, empowering users to help shape their engine to match their
-expectations. It is supported by the [Godot Foundation](https://godot.foundation/)
-not-for-profit.
+### 已实施
 
-Before being open sourced in [February 2014](https://github.com/godotengine/godot/commit/0b806ee0fc9097fa7bda7ac0109191c9c5e0a1ac),
-Godot had been developed by [Juan Linietsky](https://github.com/reduz) and
-[Ariel Manzur](https://github.com/punto-) for several years as an in-house
-engine, used to publish several work-for-hire titles.
+| 功能 | 说明 | 文档 |
+|------|------|------|
+| **设备姿态 API** | `Input.get_device_orientation()` 返回硬件融合四元数，Android/iOS 双平台 | [方案](dua_doc/DeviceOrientation设备姿态API方案.md) · [总结](dua_doc/DeviceOrientation设备姿态API实施总结.md) |
+| **传感器采样率控制** | 项目设置 `update_rate_hz` 可配置传感器频率（1~200Hz） | [文档](dua_doc/SensorUpdateRate传感器采样率控制.md) |
+| **Camera2D 相机震动** | Camera2D 内置震动系统 | [文档](dua_doc/Camera2D相机震动.md) |
+| **Canvas 后处理** | 2D 画布后处理管线 | [文档](dua_doc/CanvasPostProcess后处理.md) |
+| **平滑滚动** | ScrollContainer 惯性滚动增强 | [文档](dua_doc/ScrollContainer平滑滚动.md) |
+| **屏幕空间描边** | Inverted Hull 等宽描边方案 | [文档](dua_doc/Inverted%20Hull屏幕空间等宽描边.md) |
+| **Shader 参数集合** | 全局着色器参数集合管理 | [文档](dua_doc/ShaderParameterCollection着色器参数集合.md) |
 
-![Screenshot of a 3D scene in the Godot Engine editor](https://raw.githubusercontent.com/godotengine/godot-design/master/screenshots/editor_tps_demo_1920x1080.jpg)
+### 设计中
 
-## Getting the engine
+| 功能 | 说明 | 文档 |
+|------|------|------|
+| **增强输入系统** | 借鉴 UE 的 Input Action / Mapping 架构 | [设计](dua_doc/EnhancedInput增强输入系统.md) · [计划](dua_doc/EnhancedInput落地实施计划.md) |
+| **Gameplay Tag** | 层级标签系统 | [设计](dua_doc/GameplayTag层级标签系统.md) |
+| **对象池** | 通用对象池系统 | [设计](dua_doc/ObjectPool对象池系统.md) |
+| **子系统架构** | 借鉴 UE Subsystem 的生命周期管理 | [设计](dua_doc/Subsystem子系统架构设计方案.md) |
 
-### Binary downloads
+> 完整的功能借鉴清单见 [从 UE 借鉴到 Godot 的功能清单](dua_doc/从UE借鉴到Godot的功能清单.md)
 
-Official binaries for the Godot editor and the export templates can be found
-[on the Godot website](https://godotengine.org/download).
+---
 
-### Compiling from source
+## 🚀 快速开始
 
-[See the official docs](https://docs.godotengine.org/en/latest/engine_details/development/compiling)
-for compilation instructions for every supported platform.
+### 二进制下载
 
-## Community and contributing
+> TODO: 发布编译好的编辑器和导出模板
 
-Godot is not only an engine but an ever-growing community of users and engine
-developers. The main community channels are listed [on the homepage](https://godotengine.org/community).
+### 从源码编译
 
-The best way to get in touch with the core engine developers is to join the
-[Godot Contributors Chat](https://chat.godotengine.org).
+环境要求与 Godot 官方一致，参考 [Godot 编译文档](https://docs.godotengine.org/en/latest/engine_details/development/compiling)。
 
-To get started contributing to the project, see the [contributing guide](CONTRIBUTING.md).
-This document also includes guidelines for reporting bugs.
+```bash
+# 编译编辑器（Windows）
+scons platform=windows target=editor
 
-## Documentation and demos
+# 编译 Android 导出模板
+scons platform=android target=template_debug arch=arm64
+scons platform=android target=template_release arch=arm64
 
-The official documentation is hosted on [Read the Docs](https://docs.godotengine.org).
-It is maintained by the Godot community in its own [GitHub repository](https://github.com/godotengine/godot-docs).
+# 编译 iOS 导出模板
+scons platform=ios target=template_debug arch=arm64
+scons platform=ios target=template_release arch=arm64
+```
 
-The [class reference](https://docs.godotengine.org/en/latest/classes/)
-is also accessible from the Godot editor.
+---
 
-We also maintain official demos in their own [GitHub repository](https://github.com/godotengine/godot-demo-projects)
-as well as a list of [awesome Godot community resources](https://github.com/godotengine/awesome-godot).
+## 📂 项目结构
 
-There are also a number of other
-[learning resources](https://docs.godotengine.org/en/latest/community/tutorials.html)
-provided by the community, such as text and video tutorials, demos, etc.
-Consult the [community channels](https://godotengine.org/community)
-for more information.
+```
+├── core/                  # 引擎核心（Input、Math、Object 等）
+├── drivers/               # 平台驱动（apple_embedded、vulkan 等）
+├── platform/              # 平台适配层（android、ios、windows 等）
+├── scene/                 # 场景系统（2D/3D 节点、GUI 等）
+├── servers/               # 服务器（渲染、物理、音频等）
+├── modules/               # 可选模块
+├── doc/classes/           # API 文档（XML 格式）
+├── dua_doc/               # 📝 DuaDot 自定义功能的设计文档与实施记录
+└── README.md
+```
 
-[![Code Triagers Badge](https://www.codetriage.com/godotengine/godot/badges/users.svg)](https://www.codetriage.com/godotengine/godot)
-[![Translate on Weblate](https://hosted.weblate.org/widgets/godot-engine/-/godot/svg-badge.svg)](https://hosted.weblate.org/engage/godot-engine/?utm_source=widget)
+---
+
+## 📖 文档
+
+- **DuaDot 新增功能文档**：[dua_doc/](dua_doc/) 目录
+- **Godot 官方文档**：[docs.godotengine.org](https://docs.godotengine.org)
+- **API 参考**：编辑器内 → 帮助 → 搜索类名
+- **工作流程**：[dua_doc/工作流程.md](dua_doc/工作流程.md)
+
+---
+
+## 🔗 上游同步
+
+本仓库基于 Godot 官方仓库 fork，定期同步上游更新：
+
+```bash
+git remote add upstream https://github.com/godotengine/godot.git
+git fetch upstream
+git merge upstream/master
+```
+
+DuaDot 的所有改动都有对应的 `dua_doc/` 文档记录，便于合并时解决冲突。
+
+---
+
+## 📜 许可证
+
+与 Godot Engine 一致，采用 [MIT 许可证](LICENSE.txt)。
