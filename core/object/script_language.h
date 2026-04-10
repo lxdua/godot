@@ -231,6 +231,8 @@ public:
 		int line = -1;
 		int column = -1;
 		String message;
+		String fix_id; // Quick fix identifier (e.g. "implement_abstract_methods").
+		PackedStringArray fix_data; // Data needed by the quick fix (e.g. method stub strings).
 	};
 
 	enum TemplateLocation {

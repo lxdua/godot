@@ -254,6 +254,14 @@ void GDScriptParser::push_error(const String &p_message, const Node *p_origin) {
 	errors.push_back(err);
 }
 
+void GDScriptParser::push_error(const String &p_message, const Node *p_origin, const String &p_fix_id, const PackedStringArray &p_fix_data) {
+	push_error(p_message, p_origin);
+	if (!errors.is_empty()) {
+		errors.back()->get().fix_id = p_fix_id;
+		errors.back()->get().fix_data = p_fix_data;
+	}
+}
+
 #ifdef DEBUG_ENABLED
 void GDScriptParser::push_warning(const Node *p_source, GDScriptWarning::Code p_code, const Vector<String> &p_symbols) {
 	ERR_FAIL_NULL(p_source);

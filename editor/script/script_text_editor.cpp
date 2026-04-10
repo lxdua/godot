@@ -414,6 +414,16 @@ void ScriptTextEditor::_error_clicked(const Variant &p_line) {
 		goto_line_centered(p_line.operator int64_t());
 	} else if (p_line.get_type() == Variant::DICTIONARY) {
 		Dictionary meta = p_line.operator Dictionary();
+
+		// Quick Fix dispatch.
+		if (meta.has("fix_id")) {
+			String fix_id = meta["fix_id"];
+			if (fix_id == "implement_abstract_methods") {
+				_implement_abstract_methods(meta["fix_data"]);
+			}
+			return; // Quick fix meta has no path/line/column, so don't fall through.
+		}
+
 		const String path = meta["path"].operator String();
 		const int line = meta["line"].operator int64_t();
 		const int column = meta["column"].operator int64_t();
@@ -437,6 +447,38 @@ void ScriptTextEditor::_error_clicked(const Variant &p_line) {
 			}
 		}
 	}
+}
+
+void ScriptTextEditor::_implement_abstract_methods(const PackedStringArray &p_stubs) {
+	CodeEdit *te = code_editor->get_text_editor();
+	te->begin_complex_operation();
+
+	int last_line = te->get_line_count() - 1;
+	String last_line_text = te->get_line(last_line);
+
+	// Determine indentation style from editor settings.
+	String indent;
+	if (te->is_indent_using_spaces()) {
+		indent = String(" ").repeat(te->get_indent_size());
+	} else {
+		indent = "\t";
+	}
+
+	// Build the code to insert.
+	String code_to_insert;
+	if (!last_line_text.strip_edges().is_empty()) {
+		code_to_insert += "\n";
+	}
+	for (const String &stub : p_stubs) {
+		String adjusted_stub = stub.replace("\t", indent);
+		code_to_insert += "\n" + adjusted_stub + "\n";
+	}
+
+	te->insert_text(code_to_insert, last_line, last_line_text.length());
+
+	te->end_complex_operation();
+
+	_validate_script();
 }
 
 void ScriptTextEditor::_on_mouse_exited() {
@@ -981,6 +1023,20 @@ void ScriptTextEditor::_update_errors() {
 
 		errors_panel->push_cell();
 		errors_panel->add_text(err.message);
+
+		// Quick Fix: Implement abstract methods.
+		if (err.fix_id == "implement_abstract_methods" && !err.fix_data.is_empty()) {
+			errors_panel->add_newline();
+			Dictionary impl_meta;
+			impl_meta["fix_id"] = err.fix_id;
+			impl_meta["fix_data"] = err.fix_data;
+			errors_panel->push_meta(impl_meta);
+			errors_panel->push_color(errors_panel->get_theme_color(SNAME("accent_color"), EditorStringName(Editor)));
+			errors_panel->add_text(TTR("[Implement All]"));
+			errors_panel->pop(); // Color.
+			errors_panel->pop(); // Meta.
+		}
+
 		errors_panel->add_newline();
 		errors_panel->pop(); // Cell.
 	}

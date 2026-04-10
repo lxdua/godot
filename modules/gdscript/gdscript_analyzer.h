@@ -148,6 +148,9 @@ class GDScriptAnalyzer {
 	bool is_type_compatible(const GDScriptParser::DataType &p_target, const GDScriptParser::DataType &p_source, bool p_allow_implicit_conversion = false, const GDScriptParser::Node *p_source_node = nullptr);
 	bool is_type_compatible_strict_collections(const GDScriptParser::DataType &p_target, const GDScriptParser::DataType &p_source);
 	void push_error(const String &p_message, const GDScriptParser::Node *p_origin = nullptr);
+	void push_error(const String &p_message, const GDScriptParser::Node *p_origin, const String &p_fix_id, const PackedStringArray &p_fix_data);
+	String _generate_abstract_method_stub(const GDScriptParser::FunctionNode *p_function) const;
+	String _get_default_value_literal(const GDScriptParser::DataType &p_type) const;
 	void mark_node_unsafe(const GDScriptParser::Node *p_node);
 	void downgrade_node_type_source(GDScriptParser::Node *p_node);
 	void mark_lambda_use_self();

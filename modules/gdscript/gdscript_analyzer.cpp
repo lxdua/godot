@@ -1532,6 +1532,9 @@ void GDScriptAnalyzer::resolve_class_body(GDScriptParser::ClassNode *p_class, co
 	// Resolve base abstract class/method implementation requirements.
 	if (!p_class->is_abstract) {
 		HashSet<StringName> implemented_funcs;
+		Vector<const GDScriptParser::FunctionNode *> unimplemented_abstracts;
+		bool has_own_abstract = false;
+		String first_unimplemented_base_class_name;
 		const GDScriptParser::ClassNode *base_class = p_class;
 		while (base_class != nullptr) {
 			if (!base_class->is_abstract && base_class != p_class) {
@@ -1541,14 +1544,12 @@ void GDScriptAnalyzer::resolve_class_body(GDScriptParser::ClassNode *p_class, co
 				if (member.type == GDScriptParser::ClassNode::Member::FUNCTION) {
 					if (member.function->is_abstract) {
 						if (base_class == p_class) {
-							const String class_name = p_class->identifier == nullptr ? p_class->fqcn.get_file() : String(p_class->identifier->name);
-							push_error(vformat(R"*(Class "%s" is not abstract but contains abstract methods. Mark the class as "@abstract" or remove "@abstract" from all methods in this class.)*", class_name), p_class);
-							break;
+							has_own_abstract = true;
 						} else if (!implemented_funcs.has(member.function->identifier->name)) {
-							const String class_name = p_class->identifier == nullptr ? p_class->fqcn.get_file() : String(p_class->identifier->name);
-							const String base_class_name = base_class->identifier == nullptr ? base_class->fqcn.get_file() : String(base_class->identifier->name);
-							push_error(vformat(R"*(Class "%s" must implement "%s.%s()" and other inherited abstract methods or be marked as "@abstract".)*", class_name, base_class_name, member.function->identifier->name), p_class);
-							break;
+							if (first_unimplemented_base_class_name.is_empty()) {
+								first_unimplemented_base_class_name = base_class->identifier == nullptr ? base_class->fqcn.get_file() : String(base_class->identifier->name);
+							}
+							unimplemented_abstracts.push_back(member.function);
 						}
 					} else {
 						implemented_funcs.insert(member.function->identifier->name);
@@ -1564,6 +1565,18 @@ void GDScriptAnalyzer::resolve_class_body(GDScriptParser::ClassNode *p_class, co
 			} else {
 				break;
 			}
+		}
+
+		const String class_name = p_class->identifier == nullptr ? p_class->fqcn.get_file() : String(p_class->identifier->name);
+
+		if (has_own_abstract) {
+			push_error(vformat(R"*(Class "%s" is not abstract but contains abstract methods. Mark the class as "@abstract" or remove "@abstract" from all methods in this class.)*", class_name), p_class);
+		} else if (!unimplemented_abstracts.is_empty()) {
+			PackedStringArray stubs;
+			for (const GDScriptParser::FunctionNode *func : unimplemented_abstracts) {
+				stubs.push_back(_generate_abstract_method_stub(func));
+			}
+			push_error(vformat(R"*(Class "%s" must implement "%s.%s()" and other inherited abstract methods or be marked as "@abstract".)*", class_name, first_unimplemented_base_class_name, unimplemented_abstracts[0]->identifier->name), p_class, "implement_abstract_methods", stubs);
 		}
 	}
 
@@ -6468,6 +6481,98 @@ bool GDScriptAnalyzer::check_type_compatibility(const GDScriptParser::DataType &
 void GDScriptAnalyzer::push_error(const String &p_message, const GDScriptParser::Node *p_origin) {
 	mark_node_unsafe(p_origin);
 	parser->push_error(p_message, p_origin);
+}
+
+void GDScriptAnalyzer::push_error(const String &p_message, const GDScriptParser::Node *p_origin, const String &p_fix_id, const PackedStringArray &p_fix_data) {
+	mark_node_unsafe(p_origin);
+	parser->push_error(p_message, p_origin, p_fix_id, p_fix_data);
+}
+
+String GDScriptAnalyzer::_get_default_value_literal(const GDScriptParser::DataType &p_type) const {
+	if (p_type.kind == GDScriptParser::DataType::BUILTIN) {
+		switch (p_type.builtin_type) {
+			case Variant::BOOL:
+				return "false";
+			case Variant::INT:
+				return "0";
+			case Variant::FLOAT:
+				return "0.0";
+			case Variant::STRING:
+			case Variant::STRING_NAME:
+				return "\"\"";
+			case Variant::VECTOR2:
+				return "Vector2()";
+			case Variant::VECTOR2I:
+				return "Vector2i()";
+			case Variant::VECTOR3:
+				return "Vector3()";
+			case Variant::VECTOR3I:
+				return "Vector3i()";
+			case Variant::VECTOR4:
+				return "Vector4()";
+			case Variant::VECTOR4I:
+				return "Vector4i()";
+			case Variant::RECT2:
+				return "Rect2()";
+			case Variant::RECT2I:
+				return "Rect2i()";
+			case Variant::COLOR:
+				return "Color()";
+			case Variant::ARRAY:
+				return "[]";
+			case Variant::DICTIONARY:
+				return "{}";
+			case Variant::NODE_PATH:
+				return "^\"\"";
+			case Variant::TRANSFORM2D:
+				return "Transform2D()";
+			case Variant::TRANSFORM3D:
+				return "Transform3D()";
+			default: {
+				String type_name = Variant::get_type_name(p_type.builtin_type);
+				return type_name + "()";
+			}
+		}
+	}
+	return "null";
+}
+
+String GDScriptAnalyzer::_generate_abstract_method_stub(const GDScriptParser::FunctionNode *p_function) const {
+	String stub = "func " + String(p_function->identifier->name) + "(";
+
+	for (int i = 0; i < p_function->parameters.size(); i++) {
+		if (i > 0) {
+			stub += ", ";
+		}
+		const GDScriptParser::ParameterNode *param = p_function->parameters[i];
+		stub += String(param->identifier->name);
+		if (param->datatype_specifier != nullptr) {
+			stub += ": " + param->get_datatype().to_string();
+		}
+	}
+	stub += ")";
+
+	GDScriptParser::DataType return_type = p_function->get_datatype();
+	bool is_void = return_type.is_hard_type() && return_type.kind == GDScriptParser::DataType::BUILTIN && return_type.builtin_type == Variant::NIL;
+	bool has_return_type = p_function->return_type != nullptr;
+
+	if (has_return_type) {
+		if (is_void) {
+			stub += " -> void";
+		} else {
+			stub += " -> " + return_type.to_string();
+		}
+	}
+
+	stub += ":\n";
+
+	if (!has_return_type || is_void) {
+		stub += "\tpass # TODO: Override abstract method.";
+	} else {
+		stub += "\treturn " + _get_default_value_literal(return_type) + " # TODO: Override abstract method.";
+	}
+
+	return stub;
 }
 
 void GDScriptAnalyzer::mark_node_unsafe(const GDScriptParser::Node *p_node) {

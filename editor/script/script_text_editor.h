@@ -172,6 +172,7 @@ protected:
 	void _show_errors_panel(bool p_show);
 	void _show_warnings_panel(bool p_show);
 	void _error_clicked(const Variant &p_line);
+	void _implement_abstract_methods(const PackedStringArray &p_stubs);
 	virtual bool _warning_clicked(const Variant &p_line) override;
 	void _on_mouse_exited();
 

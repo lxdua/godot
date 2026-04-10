@@ -273,6 +273,8 @@ public:
 		int start_column = 0;
 		int end_line = 0;
 		int end_column = 0;
+		String fix_id; // Quick fix identifier (e.g. "implement_abstract_methods").
+		PackedStringArray fix_data; // Data needed by the quick fix (e.g. method stub strings).
 	};
 
 #ifdef TOOLS_ENABLED
@@ -1500,6 +1502,7 @@ private:
 	void clear();
 
 	void push_error(const String &p_message, const Node *p_origin = nullptr);
+	void push_error(const String &p_message, const Node *p_origin, const String &p_fix_id, const PackedStringArray &p_fix_data);
 #ifdef DEBUG_ENABLED
 	void push_warning(const Node *p_source, GDScriptWarning::Code p_code, const Vector<String> &p_symbols);
 	template <typename... Symbols>
