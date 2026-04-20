@@ -32,7 +32,9 @@
 
 #include "../nav_utils_3d.h"
 #include "nav_mesh_queries_3d.h"
+#include "nav_region_iteration_3d.h"
 
+#include "core/math/dynamic_bvh.h"
 #include "core/math/math_defs.h"
 #include "core/os/rw_lock.h"
 #include "core/os/semaphore.h"
@@ -81,6 +83,10 @@ struct NavMapIteration3D {
 
 	int navmesh_polygon_count = 0;
 
+	// BVH spatial index for polygon queries (closest point, nearest polygon, etc.).
+	DynamicBVH polygon_bvh;
+	LocalVector<const Nav3D::Polygon *> polygon_bvh_data; // Maps BVH leaf index → polygon pointer.
+
 	// The edge connections that the map builds on top with the edge connection margin.
 	HashMap<const NavBaseIteration3D *, LocalVector<Nav3D::Connection>> external_region_connections;
 	HashMap<const NavBaseIteration3D *, LocalVector<LocalVector<Nav3D::Connection>>> navbases_polygons_external_connections;
@@ -96,6 +102,9 @@ struct NavMapIteration3D {
 	void clear() {
 		map_up = Vector3();
 		navmesh_polygon_count = 0;
+
+		polygon_bvh.clear();
+		polygon_bvh_data.clear();
 
 		region_iterations.clear();
 		link_iterations.clear();

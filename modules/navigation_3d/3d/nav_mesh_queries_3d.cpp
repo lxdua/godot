@@ -234,46 +234,88 @@ void NavMeshQueries3D::map_query_path(NavMap3D *map, const Ref<NavigationPathQue
 	}
 }
 
-void NavMeshQueries3D::_query_task_find_start_end_positions(NavMeshPathQueryTask3D &p_query_task, const NavMapIteration3D &p_map_iteration) {
-	real_t begin_d = FLT_MAX;
-	real_t end_d = FLT_MAX;
+const Nav3D::Polygon *NavMeshQueries3D::_find_closest_polygon_to_point(const NavMapIteration3D &p_map_iteration, const NavMeshPathQueryTask3D &p_query_task, const Vector3 &p_point, Vector3 &r_closest_point) {
+	if (p_map_iteration.polygon_bvh.is_empty()) {
+		return nullptr;
+	}
 
-	const LocalVector<Ref<NavRegionIteration3D>> &regions = p_map_iteration.region_iterations;
+	const LocalVector<const Nav3D::Polygon *> &bvh_data = p_map_iteration.polygon_bvh_data;
 
-	for (const Ref<NavRegionIteration3D> &region : regions) {
-		if (!_query_task_is_connection_owner_usable(p_query_task, region.ptr())) {
-			continue;
+	real_t closest_d = FLT_MAX;
+	const Nav3D::Polygon *closest_polygon = nullptr;
+	Vector3 closest_point;
+
+	real_t search_radius = 1.0;
+	static const real_t SEARCH_RADIUS_MAX = 10000.0;
+	static const real_t SEARCH_RADIUS_GROW_FACTOR = 4.0;
+
+	struct BVHClosestPolyCallback {
+		const LocalVector<const Nav3D::Polygon *> &bvh_data;
+		const NavMeshPathQueryTask3D &query_task;
+		const Vector3 &point;
+		real_t &closest_d;
+		const Nav3D::Polygon *&closest_polygon;
+		Vector3 &closest_point;
+
+		bool operator()(void *p_data) {
+			uint32_t idx = (uint32_t)(uintptr_t)p_data;
+			const Nav3D::Polygon *p = bvh_data[idx];
+
+			// Check enabled, navigation_layers, and exclude/include region filters.
+			if (!NavMeshQueries3D::_query_task_is_connection_owner_usable(query_task, p->owner)) {
+				return false; // Continue searching.
+			}
+
+			for (uint32_t point_id = 2; point_id < p->vertices.size(); point_id++) {
+				const Face3 face(p->vertices[0], p->vertices[point_id - 1], p->vertices[point_id]);
+
+				Vector3 pt = face.get_closest_point_to(point);
+				real_t d = pt.distance_to(point);
+				if (d < closest_d) {
+					closest_d = d;
+					closest_polygon = p;
+					closest_point = pt;
+				}
+			}
+
+			return false; // Continue searching all candidates.
+		}
+	};
+
+	while (closest_d == FLT_MAX) {
+		Vector3 expand(search_radius, search_radius, search_radius);
+		AABB query_aabb(p_point - expand, expand * 2.0);
+
+		BVHClosestPolyCallback callback{ bvh_data, p_query_task, p_point, closest_d, closest_polygon, closest_point };
+		const_cast<DynamicBVH &>(p_map_iteration.polygon_bvh).aabb_query(query_aabb, callback);
+
+		if (closest_d != FLT_MAX) {
+			// Refinement: re-query with AABB sized to the found distance, ensuring no closer
+			// polygon was missed due to its AABB being outside the previous search AABB.
+			real_t refine_radius = closest_d + CMP_EPSILON;
+			Vector3 refine_expand(refine_radius, refine_radius, refine_radius);
+			AABB refine_aabb(p_point - refine_expand, refine_expand * 2.0);
+
+			BVHClosestPolyCallback refine_callback{ bvh_data, p_query_task, p_point, closest_d, closest_polygon, closest_point };
+			const_cast<DynamicBVH &>(p_map_iteration.polygon_bvh).aabb_query(refine_aabb, refine_callback);
+			break;
 		}
 
-		// Find the initial poly and the end poly on this map.
-		for (const Polygon &p : region->get_navmesh_polygons()) {
-			// Only consider the polygon if it in a region with compatible layers.
-			if ((p_query_task.navigation_layers & p.owner->get_navigation_layers()) == 0) {
-				continue;
-			}
-
-			// For each face check the distance between the origin/destination.
-			for (uint32_t point_id = 2; point_id < p.vertices.size(); point_id++) {
-				const Face3 face(p.vertices[0], p.vertices[point_id - 1], p.vertices[point_id]);
-
-				Vector3 point = face.get_closest_point_to(p_query_task.start_position);
-				real_t distance_to_point = point.distance_to(p_query_task.start_position);
-				if (distance_to_point < begin_d) {
-					begin_d = distance_to_point;
-					p_query_task.begin_polygon = &p;
-					p_query_task.begin_position = point;
-				}
-
-				point = face.get_closest_point_to(p_query_task.target_position);
-				distance_to_point = point.distance_to(p_query_task.target_position);
-				if (distance_to_point < end_d) {
-					end_d = distance_to_point;
-					p_query_task.end_polygon = &p;
-					p_query_task.end_position = point;
-				}
-			}
+		search_radius *= SEARCH_RADIUS_GROW_FACTOR;
+		if (search_radius > SEARCH_RADIUS_MAX) {
+			break; // Give up expanding.
 		}
 	}
+
+	r_closest_point = closest_point;
+	return closest_polygon;
+}
+
+void NavMeshQueries3D::_query_task_find_start_end_positions(NavMeshPathQueryTask3D &p_query_task, const NavMapIteration3D &p_map_iteration) {
+	p_query_task.begin_polygon = _find_closest_polygon_to_point(
+			p_map_iteration, p_query_task, p_query_task.start_position, p_query_task.begin_position);
+	p_query_task.end_polygon = _find_closest_polygon_to_point(
+			p_map_iteration, p_query_task, p_query_task.target_position, p_query_task.end_position);
 }
 
 void NavMeshQueries3D::_query_task_search_polygon_connections(NavMeshPathQueryTask3D &p_query_task, const Connection &p_connection, uint32_t p_least_cost_id, const NavigationPoly &p_least_cost_poly, real_t p_poly_enter_cost, const Vector3 &p_end_point) {
@@ -882,61 +924,110 @@ Vector3 NavMeshQueries3D::map_iteration_get_closest_point_to_segment(const NavMa
 	Vector3 closest_point;
 	real_t closest_point_distance = FLT_MAX;
 
-	const LocalVector<Ref<NavRegionIteration3D>> &regions = p_map_iteration.region_iterations;
-	for (const Ref<NavRegionIteration3D> &region : regions) {
-		for (const Polygon &polygon : region->get_navmesh_polygons()) {
-			// For each face check the distance to the segment.
-			for (uint32_t point_id = 2; point_id < polygon.vertices.size(); point_id += 1) {
-				const Face3 face(polygon.vertices[0], polygon.vertices[point_id - 1], polygon.vertices[point_id]);
-				Vector3 intersection_point;
-				if (face.intersects_segment(p_from, p_to, &intersection_point)) {
-					const real_t d = p_from.distance_to(intersection_point);
-					if (!use_collision) {
-						closest_point = intersection_point;
-						use_collision = true;
-						closest_point_distance = d;
-					} else if (closest_point_distance > d) {
-						closest_point = intersection_point;
-						closest_point_distance = d;
-					}
-				}
-				// If segment does not itersect face, check the distance from segment's endpoints.
-				else if (!use_collision) {
-					const Vector3 p_from_closest = face.get_closest_point_to(p_from);
-					const real_t d_p_from = p_from.distance_to(p_from_closest);
-					if (closest_point_distance > d_p_from) {
-						closest_point = p_from_closest;
-						closest_point_distance = d_p_from;
-					}
+	if (p_map_iteration.polygon_bvh.is_empty()) {
+		return closest_point;
+	}
 
-					const Vector3 p_to_closest = face.get_closest_point_to(p_to);
-					const real_t d_p_to = p_to.distance_to(p_to_closest);
-					if (closest_point_distance > d_p_to) {
-						closest_point = p_to_closest;
-						closest_point_distance = d_p_to;
+	const LocalVector<const Nav3D::Polygon *> &bvh_data = p_map_iteration.polygon_bvh_data;
+
+	// Build AABB from segment, with some margin for edge-to-segment distance checks.
+	Vector3 seg_min = p_from.min(p_to);
+	Vector3 seg_max = p_from.max(p_to);
+
+	real_t search_margin = 1.0;
+	static const real_t SEARCH_MARGIN_MAX = 10000.0;
+	static const real_t SEARCH_MARGIN_GROW_FACTOR = 4.0;
+
+	while (closest_point_distance == FLT_MAX) {
+		Vector3 expand(search_margin, search_margin, search_margin);
+		AABB query_aabb(seg_min - expand, (seg_max - seg_min) + expand * 2.0);
+
+		struct BVHSegmentCallback {
+			const LocalVector<const Nav3D::Polygon *> &bvh_data;
+			const Vector3 &from;
+			const Vector3 &to;
+			bool &use_collision;
+			Vector3 &closest_point;
+			real_t &closest_point_distance;
+
+			bool operator()(void *p_data) {
+				uint32_t idx = (uint32_t)(uintptr_t)p_data;
+				const Nav3D::Polygon *polygon = bvh_data[idx];
+
+				// For each face check the distance to the segment.
+				for (uint32_t point_id = 2; point_id < polygon->vertices.size(); point_id += 1) {
+					const Face3 face(polygon->vertices[0], polygon->vertices[point_id - 1], polygon->vertices[point_id]);
+					Vector3 intersection_point;
+					if (face.intersects_segment(from, to, &intersection_point)) {
+						const real_t d = from.distance_to(intersection_point);
+						if (!use_collision) {
+							closest_point = intersection_point;
+							use_collision = true;
+							closest_point_distance = d;
+						} else if (closest_point_distance > d) {
+							closest_point = intersection_point;
+							closest_point_distance = d;
+						}
+					}
+					// If segment does not intersect face, check the distance from segment's endpoints.
+					else if (!use_collision) {
+						const Vector3 from_closest = face.get_closest_point_to(from);
+						const real_t d_from = from.distance_to(from_closest);
+						if (closest_point_distance > d_from) {
+							closest_point = from_closest;
+							closest_point_distance = d_from;
+						}
+
+						const Vector3 to_closest = face.get_closest_point_to(to);
+						const real_t d_to = to.distance_to(to_closest);
+						if (closest_point_distance > d_to) {
+							closest_point = to_closest;
+							closest_point_distance = d_to;
+						}
 					}
 				}
+				// Finally, check for a case when shortest distance is between some point located on a face's edge and some point located on a line segment.
+				if (!use_collision) {
+					for (uint32_t point_id = 0; point_id < polygon->vertices.size(); point_id += 1) {
+						Vector3 a, b;
+
+						Geometry3D::get_closest_points_between_segments(
+								from,
+								to,
+								polygon->vertices[point_id],
+								polygon->vertices[(point_id + 1) % polygon->vertices.size()],
+								a,
+								b);
+
+						const real_t d = a.distance_to(b);
+						if (d < closest_point_distance) {
+							closest_point_distance = d;
+							closest_point = b;
+						}
+					}
+				}
+
+				return false; // Continue searching all candidates.
 			}
-			// Finally, check for a case when shortest distance is between some point located on a face's edge and some point located on a line segment.
-			if (!use_collision) {
-				for (uint32_t point_id = 0; point_id < polygon.vertices.size(); point_id += 1) {
-					Vector3 a, b;
+		};
 
-					Geometry3D::get_closest_points_between_segments(
-							p_from,
-							p_to,
-							polygon.vertices[point_id],
-							polygon.vertices[(point_id + 1) % polygon.vertices.size()],
-							a,
-							b);
+		BVHSegmentCallback callback{ bvh_data, p_from, p_to, use_collision, closest_point, closest_point_distance };
+		const_cast<DynamicBVH &>(p_map_iteration.polygon_bvh).aabb_query(query_aabb, callback);
 
-					const real_t d = a.distance_to(b);
-					if (d < closest_point_distance) {
-						closest_point_distance = d;
-						closest_point = b;
-					}
-				}
-			}
+		if (closest_point_distance != FLT_MAX) {
+			// Refinement: re-query with AABB expanded by the found distance to catch closer polygons.
+			real_t refine_margin = closest_point_distance + CMP_EPSILON;
+			Vector3 refine_expand(refine_margin, refine_margin, refine_margin);
+			AABB refine_aabb(seg_min - refine_expand, (seg_max - seg_min) + refine_expand * 2.0);
+
+			BVHSegmentCallback refine_callback{ bvh_data, p_from, p_to, use_collision, closest_point, closest_point_distance };
+			const_cast<DynamicBVH &>(p_map_iteration.polygon_bvh).aabb_query(refine_aabb, refine_callback);
+			break;
+		}
+
+		search_margin *= SEARCH_MARGIN_GROW_FACTOR;
+		if (search_margin > SEARCH_MARGIN_MAX) {
+			break;
 		}
 	}
 
@@ -962,70 +1053,116 @@ ClosestPointQueryResult NavMeshQueries3D::map_iteration_get_closest_point_info(c
 	ClosestPointQueryResult result;
 	real_t closest_point_distance_squared = FLT_MAX;
 
-	const LocalVector<Ref<NavRegionIteration3D>> &regions = p_map_iteration.region_iterations;
-	for (const Ref<NavRegionIteration3D> &region : regions) {
-		for (const Polygon &polygon : region->get_navmesh_polygons()) {
-			Vector3 plane_normal = (polygon.vertices[1] - polygon.vertices[0]).cross(polygon.vertices[2] - polygon.vertices[0]);
-			Vector3 closest_on_polygon;
-			real_t closest = FLT_MAX;
-			bool inside = true;
-			Vector3 previous = polygon.vertices[polygon.vertices.size() - 1];
-			for (uint32_t point_id = 0; point_id < polygon.vertices.size(); ++point_id) {
-				Vector3 edge = polygon.vertices[point_id] - previous;
-				Vector3 to_point = p_point - previous;
-				Vector3 edge_to_point_pormal = edge.cross(to_point);
-				bool clockwise = edge_to_point_pormal.dot(plane_normal) > 0;
-				// If we are not clockwise, the point will never be inside the polygon and so the closest point will be on an edge.
-				if (!clockwise) {
-					inside = false;
-					real_t point_projected_on_edge = edge.dot(to_point);
-					real_t edge_square = edge.length_squared();
+	if (p_map_iteration.polygon_bvh.is_empty()) {
+		return result;
+	}
 
-					if (point_projected_on_edge > edge_square) {
-						real_t distance = polygon.vertices[point_id].distance_squared_to(p_point);
-						if (distance < closest) {
-							closest_on_polygon = polygon.vertices[point_id];
-							closest = distance;
+	const LocalVector<const Nav3D::Polygon *> &bvh_data = p_map_iteration.polygon_bvh_data;
+
+	real_t search_radius = 1.0;
+	static const real_t SEARCH_RADIUS_MAX = 10000.0;
+	static const real_t SEARCH_RADIUS_GROW_FACTOR = 4.0;
+
+	while (closest_point_distance_squared == FLT_MAX) {
+		Vector3 expand(search_radius, search_radius, search_radius);
+		AABB query_aabb(p_point - expand, expand * 2.0);
+
+		struct BVHClosestPointCallback {
+			const LocalVector<const Nav3D::Polygon *> &bvh_data;
+			const Vector3 &point;
+			ClosestPointQueryResult &result;
+			real_t &closest_point_distance_squared;
+
+			bool operator()(void *p_data) {
+				uint32_t idx = (uint32_t)(uintptr_t)p_data;
+				const Nav3D::Polygon *polygon = bvh_data[idx];
+
+				if (polygon->vertices.size() < 3) {
+					return false;
+				}
+
+				Vector3 plane_normal = (polygon->vertices[1] - polygon->vertices[0]).cross(polygon->vertices[2] - polygon->vertices[0]);
+				Vector3 closest_on_polygon;
+				real_t closest = FLT_MAX;
+				bool inside = true;
+				Vector3 previous = polygon->vertices[polygon->vertices.size() - 1];
+				for (uint32_t point_id = 0; point_id < polygon->vertices.size(); ++point_id) {
+					Vector3 edge = polygon->vertices[point_id] - previous;
+					Vector3 to_point = point - previous;
+					Vector3 edge_to_point_pormal = edge.cross(to_point);
+					bool clockwise = edge_to_point_pormal.dot(plane_normal) > 0;
+					if (!clockwise) {
+						inside = false;
+						real_t point_projected_on_edge = edge.dot(to_point);
+						real_t edge_square = edge.length_squared();
+
+						if (point_projected_on_edge > edge_square) {
+							real_t distance = polygon->vertices[point_id].distance_squared_to(point);
+							if (distance < closest) {
+								closest_on_polygon = polygon->vertices[point_id];
+								closest = distance;
+							}
+						} else if (point_projected_on_edge < 0.f) {
+							real_t distance = previous.distance_squared_to(point);
+							if (distance < closest) {
+								closest_on_polygon = previous;
+								closest = distance;
+							}
+						} else {
+							real_t percent = point_projected_on_edge / edge_square;
+							closest_on_polygon = previous + percent * edge;
+							break;
 						}
-					} else if (point_projected_on_edge < 0.f) {
-						real_t distance = previous.distance_squared_to(p_point);
-						if (distance < closest) {
-							closest_on_polygon = previous;
-							closest = distance;
+					}
+					previous = polygon->vertices[point_id];
+				}
+
+				if (inside) {
+					Vector3 plane_normalized = plane_normal.normalized();
+					real_t distance = plane_normalized.dot(point - polygon->vertices[0]);
+					real_t distance_squared = distance * distance;
+					if (distance_squared < closest_point_distance_squared) {
+						closest_point_distance_squared = distance_squared;
+						result.point = point - plane_normalized * distance;
+						result.normal = plane_normalized;
+						result.owner = polygon->owner->get_self();
+
+						if (Math::is_zero_approx(distance)) {
+							return true; // Exact hit, can't get closer. Stop searching.
 						}
-					} else {
-						// If we project on this edge, this will be the closest point.
-						real_t percent = point_projected_on_edge / edge_square;
-						closest_on_polygon = previous + percent * edge;
-						break;
+					}
+				} else {
+					real_t distance = closest_on_polygon.distance_squared_to(point);
+					if (distance < closest_point_distance_squared) {
+						closest_point_distance_squared = distance;
+						result.point = closest_on_polygon;
+						result.normal = plane_normal.normalized();
+						result.owner = polygon->owner->get_self();
 					}
 				}
-				previous = polygon.vertices[point_id];
-			}
 
-			if (inside) {
-				Vector3 plane_normalized = plane_normal.normalized();
-				real_t distance = plane_normalized.dot(p_point - polygon.vertices[0]);
-				real_t distance_squared = distance * distance;
-				if (distance_squared < closest_point_distance_squared) {
-					closest_point_distance_squared = distance_squared;
-					result.point = p_point - plane_normalized * distance;
-					result.normal = plane_normal;
-					result.owner = polygon.owner->get_self();
-
-					if (Math::is_zero_approx(distance)) {
-						break;
-					}
-				}
-			} else {
-				real_t distance = closest_on_polygon.distance_squared_to(p_point);
-				if (distance < closest_point_distance_squared) {
-					closest_point_distance_squared = distance;
-					result.point = closest_on_polygon;
-					result.normal = plane_normal;
-					result.owner = polygon.owner->get_self();
-				}
+				return false; // Continue searching all candidates.
 			}
+		};
+
+		BVHClosestPointCallback callback{ bvh_data, p_point, result, closest_point_distance_squared };
+		const_cast<DynamicBVH &>(p_map_iteration.polygon_bvh).aabb_query(query_aabb, callback);
+
+		if (closest_point_distance_squared != FLT_MAX) {
+			// Refinement: re-query with AABB sized to the found distance to catch closer polygons
+			// whose AABBs were outside the previous search AABB.
+			real_t refine_radius = Math::sqrt(closest_point_distance_squared) + CMP_EPSILON;
+			Vector3 refine_expand(refine_radius, refine_radius, refine_radius);
+			AABB refine_aabb(p_point - refine_expand, refine_expand * 2.0);
+
+			BVHClosestPointCallback refine_callback{ bvh_data, p_point, result, closest_point_distance_squared };
+			const_cast<DynamicBVH &>(p_map_iteration.polygon_bvh).aabb_query(refine_aabb, refine_callback);
+			break;
+		}
+
+		search_radius *= SEARCH_RADIUS_GROW_FACTOR;
+		if (search_radius > SEARCH_RADIUS_MAX) {
+			break;
 		}
 	}
 
@@ -1217,7 +1354,7 @@ ClosestPointQueryResult NavMeshQueries3D::polygons_get_closest_point_info(const 
 			if (distance_squared < closest_point_distance_squared) {
 				closest_point_distance_squared = distance_squared;
 				result.point = p_point - plane_normalized * distance;
-				result.normal = plane_normal;
+				result.normal = plane_normalized;
 				result.owner = polygon.owner->get_self();
 
 				if (Math::is_zero_approx(distance)) {
@@ -1229,7 +1366,7 @@ ClosestPointQueryResult NavMeshQueries3D::polygons_get_closest_point_info(const 
 			if (distance < closest_point_distance_squared) {
 				closest_point_distance_squared = distance;
 				result.point = closest_on_polygon;
-				result.normal = plane_normal;
+				result.normal = plane_normal.normalized();
 				result.owner = polygon.owner->get_self();
 			}
 		}
@@ -1317,7 +1454,7 @@ bool NavMeshQueries3D::_query_task_is_connection_owner_usable(const NavMeshPathQ
 						// Not usable. Exclude region filter is active and at least one region of the link is excluded.
 						owner_usable = false;
 					}
-					if (p_query_task.include_regions && (!p_query_task.included_regions.has(link_start_region) || !p_query_task.excluded_regions.has(link_end_region))) {
+					if (p_query_task.include_regions && (!p_query_task.included_regions.has(link_start_region) || !p_query_task.included_regions.has(link_end_region))) {
 						// Not usable. Include region filter is active and not both regions of the links are included.
 						owner_usable = false;
 					}

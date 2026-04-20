@@ -38,6 +38,19 @@
 
 using namespace Nav3D;
 
+static AABB _polygon_to_aabb(const Polygon &p_polygon) {
+	DEV_ASSERT(p_polygon.vertices.size() >= 1);
+	Vector3 aabb_min = p_polygon.vertices[0];
+	Vector3 aabb_max = p_polygon.vertices[0];
+	for (uint32_t i = 1; i < p_polygon.vertices.size(); i++) {
+		aabb_min = aabb_min.min(p_polygon.vertices[i]);
+		aabb_max = aabb_max.max(p_polygon.vertices[i]);
+	}
+	// Grow by a small epsilon to avoid zero-thickness AABBs for coplanar/degenerate polygons
+	// (e.g., navlink synthetic polygons where vertices[0]==vertices[1]).
+	return AABB(aabb_min, aabb_max - aabb_min).grow(CMP_EPSILON);
+}
+
 PointKey NavMapBuilder3D::get_point_key(const Vector3 &p_pos, const Vector3 &p_cell_size) {
 	const int x = static_cast<int>(Math::floor(p_pos.x / p_cell_size.x));
 	const int y = static_cast<int>(Math::floor(p_pos.y / p_cell_size.y));
@@ -428,4 +441,33 @@ void NavMapBuilder3D::_build_update_map_iteration(NavMapIterationBuild3D &r_buil
 	}
 
 	map_iteration->path_query_slots_mutex.unlock();
+
+	// Build BVH spatial index for polygon queries.
+	map_iteration->polygon_bvh.clear();
+	map_iteration->polygon_bvh_data.clear();
+	map_iteration->polygon_bvh_data.reserve(total_polygon_count);
+
+	for (Ref<NavRegionIteration3D> &region : map_iteration->region_iterations) {
+		for (const Polygon &polygon : region->navmesh_polygons) {
+			if (polygon.vertices.size() < 3) {
+				continue;
+			}
+			uint32_t idx = map_iteration->polygon_bvh_data.size();
+			map_iteration->polygon_bvh_data.push_back(&polygon);
+			map_iteration->polygon_bvh.insert(_polygon_to_aabb(polygon), (void *)(uintptr_t)idx);
+		}
+	}
+
+	for (const Polygon &polygon : map_iteration->navlink_polygons) {
+		if (polygon.vertices.size() < 3) {
+			continue;
+		}
+		uint32_t idx = map_iteration->polygon_bvh_data.size();
+		map_iteration->polygon_bvh_data.push_back(&polygon);
+		map_iteration->polygon_bvh.insert(_polygon_to_aabb(polygon), (void *)(uintptr_t)idx);
+	}
+
+	if (!map_iteration->polygon_bvh.is_empty()) {
+		map_iteration->polygon_bvh.optimize_top_down();
+	}
 }

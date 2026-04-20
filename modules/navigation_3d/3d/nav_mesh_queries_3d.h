@@ -143,6 +143,7 @@ public:
 
 	static void query_task_map_iteration_get_path(NavMeshPathQueryTask3D &p_query_task, const NavMapIteration3D &p_map_iteration);
 	static void _query_task_push_back_point_with_metadata(NavMeshPathQueryTask3D &p_query_task, const Vector3 &p_point, const Nav3D::Polygon *p_point_polygon);
+	static const Nav3D::Polygon *_find_closest_polygon_to_point(const NavMapIteration3D &p_map_iteration, const NavMeshPathQueryTask3D &p_query_task, const Vector3 &p_point, Vector3 &r_closest_point);
 	static void _query_task_find_start_end_positions(NavMeshPathQueryTask3D &p_query_task, const NavMapIteration3D &p_map_iteration);
 	static void _query_task_build_path_corridor(NavMeshPathQueryTask3D &p_query_task, const NavMapIteration3D &p_map_iteration);
 	static void _query_task_post_process_corridorfunnel(NavMeshPathQueryTask3D &p_query_task);
