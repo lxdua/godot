@@ -798,9 +798,9 @@ public class GodotInputHandler implements InputManager.InputDeviceListener, Sens
 	// Pre-computed screen rotation correction quaternions (around Z axis).
 	// Format: { w, x, y, z }
 	private static final float[] ROTATION_CORRECTION_0   = { 1.0f, 0.0f, 0.0f, 0.0f };
-	private static final float[] ROTATION_CORRECTION_90  = { 0.7071068f, 0.0f, 0.0f, -0.7071068f }; // -90° around Z
+	private static final float[] ROTATION_CORRECTION_90  = { 0.7071068f, 0.0f, 0.0f, 0.7071068f };  // +90° around Z
 	private static final float[] ROTATION_CORRECTION_180 = { 0.0f, 0.0f, 0.0f, 1.0f };              // 180° around Z
-	private static final float[] ROTATION_CORRECTION_270 = { 0.7071068f, 0.0f, 0.0f, 0.7071068f };  // +90° around Z
+	private static final float[] ROTATION_CORRECTION_270 = { 0.7071068f, 0.0f, 0.0f, -0.7071068f }; // -90° around Z
 
 	/**
 	 * Multiply two quaternions: result = a * b.
