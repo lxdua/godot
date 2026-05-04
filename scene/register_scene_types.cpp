@@ -97,6 +97,7 @@
 #include "scene/gui/texture_rect.h"
 #include "scene/gui/tree.h"
 #include "scene/gui/video_stream_player.h"
+#include "scene/gui/virtual_box_container.h"
 #include "scene/gui/virtual_joystick.h"
 #include "scene/main/canvas_item.h"
 #include "scene/main/canvas_layer.h"
@@ -514,6 +515,7 @@ void register_scene_types() {
 	GDREGISTER_CLASS(FlowContainer);
 	GDREGISTER_CLASS(HFlowContainer);
 	GDREGISTER_CLASS(VFlowContainer);
+	GDREGISTER_CLASS(VirtualBoxContainer);
 	GDREGISTER_CLASS(MarginContainer);
 
 	OS::get_singleton()->yield(); // may take time to init

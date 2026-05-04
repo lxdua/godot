@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="VirtualBoxContainer" inherits="Container" api_type="core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>
+		A virtualized list/row container that only instantiates items inside the viewport.
+	</brief_description>
+	<description>
+		A container equivalent to [BoxContainer] but only instantiates the [Control] items that are currently visible inside an ancestor [ScrollContainer] (plus a small buffer). Items that scroll out of view are recycled into an internal pool and reused for items that scroll in, keeping the number of live nodes bounded by the viewport size instead of the total data-set size.
+		This makes it feasible to represent very large homogeneous lists (10000+ entries) where a plain [BoxContainer] would allocate one full [Control] subtree per entry and become memory / CPU bound.
+		[b]Expected hierarchy:[/b]
+		[codeblock]
+		ScrollContainer
+		    └── VirtualBoxContainer
+		[/codeblock]
+		[b]Usage:[/b]
+		Assign a template scene to [member item_scene] whose root inherits [Control]. Set [member item_count] to the number of logical entries in your data model. Connect to the [signal bind_item] signal and fill the [Control] with the data for the given index; this signal is emitted every time a recycled (or freshly instantiated) node is assigned to a visible index.
+		[codeblock]
+		func _ready():
+		    $VirtualBoxContainer.bind_item.connect(_on_bind_item)
+		    $VirtualBoxContainer.item_count = my_data.size()
+
+		func _on_bind_item(node: Control, index: int) -&gt; void:
+		    node.get_node("Label").text = my_data[index].title
+		[/codeblock]
+		[b]Note:[/b] The container's minimum size is computed from [member item_count] and [member item_min_size] alone; minimum sizes reported by the currently-visible child nodes are deliberately ignored so that recycled items flickering in and out of view never force the outer [ScrollContainer] to recompute its scrollbar range. If you need variable per-item sizes, this container is not the right fit.
+		[b]Note:[/b] If no ancestor [ScrollContainer] is found, virtualization degrades to using the container's own rect as the viewport. Output is still correct but no scrolling occurs.
+	</description>
+	<tutorials>
+		<link title="Using Containers">$DOCS_URL/tutorials/ui/gui_containers.html</link>
+	</tutorials>
+	<methods>
+		<method name="get_bound_index" qualifiers="const">
+			<return type="int" />
+			<param index="0" name="node" type="Control" />
+			<description>
+				Returns the logical item index currently bound to [param node], or [code]-1[/code] if [param node] is not an active binding owned by this container. Useful inside event handlers on instanced items (e.g. to map a clicked row back to a data-model index).
+			</description>
+		</method>
+		<method name="get_first_visible_index" qualifiers="const">
+			<return type="int" />
+			<description>
+				Returns the smallest item index that is currently instantiated and visible in the viewport, or [code]-1[/code] if no item is visible.
+			</description>
+		</method>
+		<method name="get_last_visible_index" qualifiers="const">
+			<return type="int" />
+			<description>
+				Returns the largest item index that is currently instantiated and visible in the viewport, or [code]-1[/code] if no item is visible.
+			</description>
+		</method>
+		<method name="get_node_at_index" qualifiers="const">
+			<return type="Control" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Returns the [Control] currently bound to the given logical [param index], or [code]null[/code] if [param index] is not within the visible range. The returned node is owned by the container and may be recycled to a different index on the next sort.
+			</description>
+		</method>
+		<method name="is_item_visible" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Returns [code]true[/code] if the given logical [param index] is currently instantiated and inside the viewport.
+			</description>
+		</method>
+		<method name="refresh">
+			<return type="void" />
+			<description>
+				Re-emits [signal bind_item] for every currently-visible node without recycling any of them. Call this after the underlying data model has changed in a way that affects multiple (or all) visible items, so that user code has a chance to update each bound [Control].
+			</description>
+		</method>
+		<method name="refresh_item">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Re-emits [signal bind_item] for the given logical [param index] if it is currently visible. If it is not visible, this is a no-op; the item will be rebound with the new data the next time it enters the viewport.
+			</description>
+		</method>
+		<method name="scroll_to_index">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="align" type="int" enum="VirtualBoxContainer.ScrollAlign" default="0" />
+			<description>
+				Scrolls the ancestor [ScrollContainer] so that the given logical [param index] is visible according to [param align] (see [enum ScrollAlign]). [param index] is clamped to [code][0, item_count - 1][/code].
+				Does nothing if there is no ancestor [ScrollContainer] or if [member item_count] is zero.
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="buffer_items" type="int" setter="set_buffer_items" getter="get_buffer_items" default="2">
+			Number of additional items to instantiate on each side of the viewport. A larger buffer reduces flicker when scrolling fast but uses more nodes and memory. Recommended range is [code]1[/code] to [code]4[/code].
+		</member>
+		<member name="item_count" type="int" setter="set_item_count" getter="get_item_count" default="0">
+			Total number of logical items in the data set. Controls how far the container can be scrolled. Negative values clamp to [code]0[/code].
+		</member>
+		<member name="item_min_size" type="Vector2" setter="set_item_min_size" getter="get_item_min_size" default="Vector2(0, 48)">
+			Fixed minimum size used for every item, in pixels. When [member vertical] is [code]true[/code], [code]y[/code] is the per-item main-axis height and [code]x[/code] is the cross-axis width; when [member vertical] is [code]false[/code], the roles are swapped.
+			The main-axis component must be non-zero for virtualization to produce a non-empty visible range; otherwise the container falls back to "show nothing" as a guard against the degenerate configuration.
+		</member>
+		<member name="item_scene" type="PackedScene" setter="set_item_scene" getter="get_item_scene">
+			Template scene used to instantiate nodes on demand. Its root must inherit [Control]. Replacing this resource releases every currently active and pooled node and rebinds the visible range from scratch.
+		</member>
+		<member name="pool_size_limit" type="int" setter="set_pool_size_limit" getter="get_pool_size_limit" default="32">
+			Maximum number of recycled nodes kept in the reuse pool when they leave the viewport. Nodes exceeding this limit are freed instead of pooled. Tune up for very large buffer windows, tune down to reduce memory.
+		</member>
+		<member name="vertical" type="bool" setter="set_vertical" getter="is_vertical" default="true">
+			If [code]true[/code], items stride along the Y axis (list). The container expects to be nested inside a vertically-scrolling [ScrollContainer]. If [code]false[/code], items stride along the X axis (row) and the container listens to the parent's horizontal scrollbar instead.
+		</member>
+	</members>
+	<signals>
+		<signal name="bind_item">
+			<param index="0" name="node" type="Control" />
+			<param index="1" name="index" type="int" />
+			<description>
+				Emitted when a [Control] [param node] becomes associated with the logical item [param index]. This can happen either because the item just entered the viewport (from scrolling or a resize) or because [method refresh] / [method refresh_item] was called. Receivers must (re)populate [param node] with the data for [param index].
+				The same [param node] instance can be re-bound to a different index over its lifetime as it is recycled; do not hold long-lived references to it under the assumption that it keeps representing the same data.
+			</description>
+		</signal>
+		<signal name="unbind_item">
+			<param index="0" name="node" type="Control" />
+			<param index="1" name="index" type="int" />
+			<description>
+				Emitted just before a [Control] [param node] is unbound from the logical item [param index] and either recycled into the pool or freed. Use this signal to commit any user-edited state back into the underlying data model (e.g. uncommitted text from an inline editor).
+			</description>
+		</signal>
+	</signals>
+	<constants>
+		<constant name="ALIGN_VISIBLE" value="0" enum="ScrollAlign">
+			Only scroll if the target item is not already fully visible. When scrolling is required, the item is brought to the nearest edge of the viewport. This is the default.
+		</constant>
+		<constant name="ALIGN_START" value="1" enum="ScrollAlign">
+			Always scroll the target item to the start of the viewport (top when [member vertical] is [code]true[/code], left when [code]false[/code]).
+		</constant>
+		<constant name="ALIGN_CENTER" value="2" enum="ScrollAlign">
+			Always scroll the target item to the center of the viewport.
+		</constant>
+		<constant name="ALIGN_END" value="3" enum="ScrollAlign">
+			Always scroll the target item to the end of the viewport (bottom when [member vertical] is [code]true[/code], right when [code]false[/code]).
+		</constant>
+	</constants>
+	<theme_items>
+		<theme_item name="separation" data_type="constant" type="int" default="0">
+			The space between consecutive items along the main axis, in pixels. Matches the semantics of [theme_item BoxContainer.separation].
+		</theme_item>
+	</theme_items>
+</class>
