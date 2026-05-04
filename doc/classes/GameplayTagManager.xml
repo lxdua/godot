@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameplayTagManager" inherits="Object" api_type="core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>
+	</brief_description>
+	<description>
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="get_all_tag_names" qualifiers="const">
+			<return type="PackedStringArray" />
+			<description>
+			</description>
+		</method>
+		<method name="get_children_of" qualifiers="const">
+			<return type="PackedStringArray" />
+			<param index="0" name="parent_tag_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="get_descendants_of" qualifiers="const">
+			<return type="PackedStringArray" />
+			<param index="0" name="parent_tag_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="get_tag" qualifiers="const">
+			<return type="GameplayTag" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="get_tag_comment" qualifiers="const">
+			<return type="String" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="get_tag_count" qualifiers="const">
+			<return type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="is_tag_registered" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="is_valid_tag_name" qualifiers="static">
+			<return type="bool" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="load_project_tags">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+		<method name="register_tag">
+			<return type="void" />
+			<param index="0" name="tag_name" type="StringName" />
+			<param index="1" name="comment" type="String" default="&quot;&quot;" />
+			<description>
+			</description>
+		</method>
+		<method name="register_tags">
+			<return type="void" />
+			<param index="0" name="tag_names" type="PackedStringArray" />
+			<description>
+			</description>
+		</method>
+		<method name="request_tag">
+			<return type="GameplayTag" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="request_tag_container">
+			<return type="GameplayTagContainer" />
+			<param index="0" name="tag_names" type="PackedStringArray" />
+			<description>
+			</description>
+		</method>
+		<method name="save_project_tags">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+		<method name="set_tag_comment">
+			<return type="void" />
+			<param index="0" name="tag_name" type="StringName" />
+			<param index="1" name="comment" type="String" />
+			<description>
+			</description>
+		</method>
+		<method name="unregister_tag">
+			<return type="bool" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+	</methods>
+	<signals>
+		<signal name="tag_registered">
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+			</description>
+		</signal>
+		<signal name="tag_unregistered">
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+			</description>
+		</signal>
+	</signals>
+</class>

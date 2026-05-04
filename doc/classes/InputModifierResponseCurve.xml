@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="InputModifierResponseCurve" inherits="InputModifier" api_type="core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>
+	</brief_description>
+	<description>
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="curve_x" type="Curve" setter="set_curve_x" getter="get_curve_x">
+		</member>
+		<member name="curve_y" type="Curve" setter="set_curve_y" getter="get_curve_y">
+		</member>
+		<member name="curve_z" type="Curve" setter="set_curve_z" getter="get_curve_z">
+		</member>
+	</members>
+</class>

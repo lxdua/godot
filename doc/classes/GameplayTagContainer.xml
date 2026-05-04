@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameplayTagContainer" inherits="Resource" api_type="core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>
+	</brief_description>
+	<description>
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="add_tag">
+			<return type="void" />
+			<param index="0" name="tag" type="GameplayTag" />
+			<description>
+			</description>
+		</method>
+		<method name="add_tag_name">
+			<return type="void" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="append_tags">
+			<return type="void" />
+			<param index="0" name="other" type="GameplayTagContainer" />
+			<description>
+			</description>
+		</method>
+		<method name="clear">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+		<method name="create_from_array" qualifiers="static">
+			<return type="GameplayTagContainer" />
+			<param index="0" name="tag_names" type="PackedStringArray" />
+			<description>
+			</description>
+		</method>
+		<method name="difference_with" qualifiers="const">
+			<return type="GameplayTagContainer" />
+			<param index="0" name="other" type="GameplayTagContainer" />
+			<description>
+			</description>
+		</method>
+		<method name="get_tag_count" qualifiers="const">
+			<return type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_tags" qualifiers="const">
+			<return type="GameplayTag[]" />
+			<description>
+			</description>
+		</method>
+		<method name="has_all" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="other" type="GameplayTagContainer" />
+			<description>
+			</description>
+		</method>
+		<method name="has_any" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="other" type="GameplayTagContainer" />
+			<description>
+			</description>
+		</method>
+		<method name="has_none" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="other" type="GameplayTagContainer" />
+			<description>
+			</description>
+		</method>
+		<method name="has_tag" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="tag" type="GameplayTag" />
+			<description>
+			</description>
+		</method>
+		<method name="has_tag_exact" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="tag" type="GameplayTag" />
+			<description>
+			</description>
+		</method>
+		<method name="has_tag_exact_name" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="has_tag_name" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="intersection_with" qualifiers="const">
+			<return type="GameplayTagContainer" />
+			<param index="0" name="other" type="GameplayTagContainer" />
+			<description>
+			</description>
+		</method>
+		<method name="is_empty" qualifiers="const">
+			<return type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="remove_tag">
+			<return type="void" />
+			<param index="0" name="tag" type="GameplayTag" />
+			<description>
+			</description>
+		</method>
+		<method name="remove_tag_name">
+			<return type="void" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="union_with" qualifiers="const">
+			<return type="GameplayTagContainer" />
+			<param index="0" name="other" type="GameplayTagContainer" />
+			<description>
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="tag_names" type="PackedStringArray" setter="set_tag_names" getter="get_tag_names" default="PackedStringArray()">
+		</member>
+	</members>
+</class>

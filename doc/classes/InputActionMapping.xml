@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="InputActionMapping" inherits="Resource" api_type="core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>
+	</brief_description>
+	<description>
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="add_modifier">
+			<return type="void" />
+			<param index="0" name="modifier" type="InputModifier" />
+			<description>
+			</description>
+		</method>
+		<method name="add_trigger">
+			<return type="void" />
+			<param index="0" name="trigger" type="InputTrigger" />
+			<description>
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="action" type="InputAction" setter="set_action" getter="get_action">
+		</member>
+		<member name="consume_input" type="bool" setter="set_consume_input" getter="get_consume_input" default="true">
+		</member>
+		<member name="input_event" type="InputEvent" setter="set_input_event" getter="get_input_event">
+		</member>
+		<member name="modifiers" type="InputModifier[]" setter="set_modifiers" getter="get_modifiers" default="[]">
+		</member>
+		<member name="triggers" type="InputTrigger[]" setter="set_triggers" getter="get_triggers" default="[]">
+		</member>
+	</members>
+</class>

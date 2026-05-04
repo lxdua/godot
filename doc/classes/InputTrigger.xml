@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="InputTrigger" inherits="Resource" api_type="core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>
+	</brief_description>
+	<description>
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_update_state" qualifiers="virtual">
+			<return type="int" />
+			<param index="0" name="current_state" type="int" />
+			<param index="1" name="value" type="Vector3" />
+			<param index="2" name="delta" type="float" />
+			<description>
+			</description>
+		</method>
+	</methods>
+	<constants>
+		<constant name="TRIGGER_NONE" value="0" enum="TriggerState">
+		</constant>
+		<constant name="TRIGGER_ONGOING" value="1" enum="TriggerState">
+		</constant>
+		<constant name="TRIGGER_TRIGGERED" value="2" enum="TriggerState">
+		</constant>
+		<constant name="TRIGGER_EVENT_NONE" value="0" enum="TriggerEvent">
+		</constant>
+		<constant name="TRIGGER_EVENT_STARTED" value="1" enum="TriggerEvent">
+		</constant>
+		<constant name="TRIGGER_EVENT_ONGOING" value="2" enum="TriggerEvent">
+		</constant>
+		<constant name="TRIGGER_EVENT_TRIGGERED" value="4" enum="TriggerEvent">
+		</constant>
+		<constant name="TRIGGER_EVENT_COMPLETED" value="8" enum="TriggerEvent">
+		</constant>
+		<constant name="TRIGGER_EVENT_CANCELED" value="16" enum="TriggerEvent">
+		</constant>
+	</constants>
+</class>

@@ -56,16 +56,6 @@
 			The way which scroll hints (indicators that show that the content can still be scrolled in a certain direction) will be shown.
 			[b]Note:[/b] Hints won't be shown if the content can be scrolled both vertically and horizontally.
 		</member>
-		<member name="smooth_scroll_enabled" type="bool" setter="set_smooth_scroll_enabled" getter="is_smooth_scroll_enabled" default="false">
-			If [code]true[/code], all scroll operations (mouse wheel, pan gesture, API calls, and [method ensure_control_visible]) will animate smoothly towards the target position instead of jumping instantly. Touch drag inertia will also use exponential decay instead of linear deceleration.
-		</member>
-		<member name="smooth_scroll_speed" type="float" setter="set_smooth_scroll_speed" getter="get_smooth_scroll_speed" default="12.0">
-			The interpolation speed for smooth scrolling. Higher values make the scroll animation reach the target faster. A value of [code]12.0[/code] means approximately 63% of the distance is covered in ~83ms. Only effective when [member smooth_scroll_enabled] is [code]true[/code].
-		</member>
-		<member name="smooth_scroll_friction" type="float" setter="set_smooth_scroll_friction" getter="get_smooth_scroll_friction" default="5.0">
-			The exponential decay rate for touch drag inertia. Higher values make the inertia stop sooner after releasing a touch drag. Only affects touch drag scrolling, not mouse wheel or pan gestures. Only effective when [member smooth_scroll_enabled] is [code]true[/code].
-			The velocity half-life is approximately [code]ln(2) / friction[/code] seconds. For example, [code]5.0[/code] gives a half-life of ~0.14s, [code]2.0[/code] gives ~0.35s (slides further).
-		</member>
 		<member name="scroll_horizontal" type="int" setter="set_h_scroll" getter="get_h_scroll" default="0">
 			The current horizontal scroll value.
 			[b]Note:[/b] If you are setting this value in the [method Node._ready] function or earlier, it needs to be wrapped with [method Object.set_deferred], since scroll bar's [member Range.max_value] is not initialized yet.
@@ -91,6 +81,16 @@
 		</member>
 		<member name="scroll_vertical_custom_step" type="float" setter="set_vertical_custom_step" getter="get_vertical_custom_step" default="-1.0">
 			Overrides the [member ScrollBar.custom_step] used when clicking the internal scroll bar's vertical increment and decrement buttons or when using arrow keys when the [ScrollBar] is focused.
+		</member>
+		<member name="smooth_scroll_enabled" type="bool" setter="set_smooth_scroll_enabled" getter="is_smooth_scroll_enabled" default="false">
+			If [code]true[/code], all scroll operations (mouse wheel, pan gesture, API calls, and [method ensure_control_visible]) will animate smoothly towards the target position instead of jumping instantly. Touch drag inertia will also use exponential decay instead of linear deceleration.
+		</member>
+		<member name="smooth_scroll_friction" type="float" setter="set_smooth_scroll_friction" getter="get_smooth_scroll_friction" default="5.0">
+			The exponential decay rate for touch drag inertia. Higher values make the inertia stop sooner after releasing a touch drag. Only affects touch drag scrolling, not mouse wheel or pan gestures. Only effective when [member smooth_scroll_enabled] is [code]true[/code].
+			The velocity half-life is approximately [code]ln(2) / friction[/code] seconds. For example, [code]5.0[/code] gives a half-life of ~0.14s, [code]2.0[/code] gives ~0.35s (slides further).
+		</member>
+		<member name="smooth_scroll_speed" type="float" setter="set_smooth_scroll_speed" getter="get_smooth_scroll_speed" default="12.0">
+			The interpolation speed for smooth scrolling. Higher values make the scroll animation reach the target faster. A value of [code]12.0[/code] means approximately 63% of the distance is covered in ~83ms. Only effective when [member smooth_scroll_enabled] is [code]true[/code].
 		</member>
 		<member name="tile_scroll_hint" type="bool" setter="set_tile_scroll_hint" getter="is_scroll_hint_tiled" default="false">
 			If [code]true[/code], the scroll hint texture will be tiled instead of stretched. See [member scroll_hint_mode].

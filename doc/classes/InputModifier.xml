@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="InputModifier" inherits="Resource" api_type="core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>
+	</brief_description>
+	<description>
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="_modify" qualifiers="virtual">
+			<return type="Vector3" />
+			<param index="0" name="value" type="Vector3" />
+			<param index="1" name="delta" type="float" />
+			<description>
+			</description>
+		</method>
+		<method name="modify">
+			<return type="Vector3" />
+			<param index="0" name="value" type="Vector3" />
+			<param index="1" name="delta" type="float" />
+			<description>
+			</description>
+		</method>
+	</methods>
+</class>

@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="EnhancedInputManager" inherits="Object" api_type="core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>
+	</brief_description>
+	<description>
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="bind_action">
+			<return type="void" />
+			<param index="0" name="action" type="InputAction" />
+			<param index="1" name="event_type" type="int" enum="TriggerEvent" is_bitfield="true" />
+			<param index="2" name="callable" type="Callable" />
+			<description>
+			</description>
+		</method>
+		<method name="clear_all_contexts">
+			<return type="void" />
+			<description>
+			</description>
+		</method>
+		<method name="get_action_elapsed_time" qualifiers="const">
+			<return type="float" />
+			<param index="0" name="action" type="InputAction" />
+			<description>
+			</description>
+		</method>
+		<method name="get_action_trigger_state" qualifiers="const">
+			<return type="int" />
+			<param index="0" name="action" type="InputAction" />
+			<description>
+			</description>
+		</method>
+		<method name="get_action_value" qualifiers="const">
+			<return type="InputActionValue" />
+			<param index="0" name="action" type="InputAction" />
+			<description>
+			</description>
+		</method>
+		<method name="get_active_contexts" qualifiers="const">
+			<return type="InputMappingContext[]" />
+			<description>
+			</description>
+		</method>
+		<method name="has_mapping_context" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="context" type="InputMappingContext" />
+			<description>
+			</description>
+		</method>
+		<method name="is_action_triggered" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="action" type="InputAction" />
+			<description>
+			</description>
+		</method>
+		<method name="pop_mapping_context">
+			<return type="void" />
+			<param index="0" name="context" type="InputMappingContext" />
+			<description>
+			</description>
+		</method>
+		<method name="push_mapping_context">
+			<return type="void" />
+			<param index="0" name="context" type="InputMappingContext" />
+			<param index="1" name="priority" type="int" default="0" />
+			<description>
+			</description>
+		</method>
+		<method name="unbind_action">
+			<return type="void" />
+			<param index="0" name="action" type="InputAction" />
+			<param index="1" name="event_type" type="int" enum="TriggerEvent" is_bitfield="true" />
+			<param index="2" name="callable" type="Callable" />
+			<description>
+			</description>
+		</method>
+	</methods>
+	<signals>
+		<signal name="action_canceled">
+			<param index="0" name="action" type="InputAction" />
+			<param index="1" name="value" type="InputActionValue" />
+			<description>
+			</description>
+		</signal>
+		<signal name="action_completed">
+			<param index="0" name="action" type="InputAction" />
+			<param index="1" name="value" type="InputActionValue" />
+			<description>
+			</description>
+		</signal>
+		<signal name="action_ongoing">
+			<param index="0" name="action" type="InputAction" />
+			<param index="1" name="value" type="InputActionValue" />
+			<description>
+			</description>
+		</signal>
+		<signal name="action_started">
+			<param index="0" name="action" type="InputAction" />
+			<param index="1" name="value" type="InputActionValue" />
+			<description>
+			</description>
+		</signal>
+		<signal name="action_triggered">
+			<param index="0" name="action" type="InputAction" />
+			<param index="1" name="value" type="InputActionValue" />
+			<param index="2" name="state" type="int" />
+			<description>
+			</description>
+		</signal>
+		<signal name="context_popped">
+			<param index="0" name="context" type="InputMappingContext" />
+			<description>
+			</description>
+		</signal>
+		<signal name="context_pushed">
+			<param index="0" name="context" type="InputMappingContext" />
+			<description>
+			</description>
+		</signal>
+	</signals>
+</class>

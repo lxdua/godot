@@ -179,6 +179,12 @@
 				[b]Note:[/b] If you want a child to be persisted to a [PackedScene], you must set [member owner] in addition to calling [method add_child]. This is typically relevant for [url=$DOCS_URL/tutorials/plugins/running_code_in_the_editor.html]tool scripts[/url] and [url=$DOCS_URL/tutorials/plugins/editor/index.html]editor plugins[/url]. If [method add_child] is called without setting [member owner], the newly added [Node] will not be visible in the scene tree, though it will be visible in the 2D/3D view.
 			</description>
 		</method>
+		<method name="add_gameplay_tag">
+			<return type="void" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+			</description>
+		</method>
 		<method name="add_sibling">
 			<return type="void" />
 			<param index="0" name="sibling" type="Node" />
@@ -311,6 +317,13 @@
 				If [param owned] is [code]true[/code], only descendants with a valid [member owner] node are checked.
 				[b]Note:[/b] This method can be very slow. Consider storing references to the found nodes in a variable.
 				[b]Note:[/b] To find a single descendant node matching a pattern, see [method find_child].
+			</description>
+		</method>
+		<method name="find_children_by_tag" qualifiers="const">
+			<return type="Node[]" />
+			<param index="0" name="tag_name" type="StringName" />
+			<param index="1" name="recursive" type="bool" default="true" />
+			<description>
 			</description>
 		</method>
 		<method name="find_parent" qualifiers="const">
@@ -601,6 +614,18 @@
 				Returns the [Window] that contains this node. If the node is in the main window, this is equivalent to getting the root node ([code]get_tree().get_root()[/code]).
 			</description>
 		</method>
+		<method name="has_gameplay_tag" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="has_gameplay_tag_exact" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+			</description>
+		</method>
 		<method name="has_node" qualifiers="const">
 			<return type="bool" />
 			<param index="0" name="path" type="NodePath" />
@@ -843,6 +868,12 @@
 				Removes the node from the given [param group]. Does nothing if the node is not in the [param group]. See also notes in the description, and the [SceneTree]'s group methods.
 			</description>
 		</method>
+		<method name="remove_gameplay_tag">
+			<return type="void" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+			</description>
+		</method>
 		<method name="reparent">
 			<return type="void" />
 			<param index="0" name="new_parent" type="Node" />
@@ -1043,6 +1074,8 @@
 		</member>
 		<member name="editor_description" type="String" setter="set_editor_description" getter="get_editor_description" default="&quot;&quot;">
 			An optional description to the node. It will be displayed as a tooltip when hovering over the node in the editor's Scene dock.
+		</member>
+		<member name="gameplay_tags" type="GameplayTagContainer" setter="set_gameplay_tags" getter="get_gameplay_tags">
 		</member>
 		<member name="multiplayer" type="MultiplayerAPI" setter="" getter="get_multiplayer">
 			The [MultiplayerAPI] instance associated with this node. See [method SceneTree.get_multiplayer].

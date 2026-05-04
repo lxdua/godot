@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="InputTriggerPulse" inherits="InputTrigger" api_type="core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>
+	</brief_description>
+	<description>
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="interval" type="float" setter="set_interval" getter="get_interval" default="0.5">
+		</member>
+		<member name="trigger_on_start" type="bool" setter="set_trigger_on_start" getter="get_trigger_on_start" default="true">
+		</member>
+	</members>
+</class>

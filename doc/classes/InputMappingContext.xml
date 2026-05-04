@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="InputMappingContext" inherits="Resource" api_type="core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>
+	</brief_description>
+	<description>
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="add_mapping">
+			<return type="void" />
+			<param index="0" name="mapping" type="InputActionMapping" />
+			<description>
+			</description>
+		</method>
+		<method name="map_action">
+			<return type="InputActionMapping" />
+			<param index="0" name="action" type="InputAction" />
+			<param index="1" name="event" type="InputEvent" />
+			<description>
+			</description>
+		</method>
+		<method name="remove_mapping">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<description>
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="context_name" type="StringName" setter="set_context_name" getter="get_context_name" default="&amp;&quot;&quot;">
+		</member>
+		<member name="mappings" type="InputActionMapping[]" setter="set_mappings" getter="get_mappings" default="[]">
+		</member>
+	</members>
+</class>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="InputTriggerHold" inherits="InputTrigger" api_type="core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>
+	</brief_description>
+	<description>
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="hold_time" type="float" setter="set_hold_time" getter="get_hold_time" default="0.5">
+		</member>
+		<member name="one_shot" type="bool" setter="set_one_shot" getter="get_one_shot" default="false">
+		</member>
+	</members>
+</class>

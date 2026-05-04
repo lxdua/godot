@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="InputActionValue" inherits="RefCounted" api_type="core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>
+	</brief_description>
+	<description>
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="create_bool" qualifiers="static">
+			<return type="InputActionValue" />
+			<param index="0" name="value" type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="create_float" qualifiers="static">
+			<return type="InputActionValue" />
+			<param index="0" name="value" type="float" />
+			<description>
+			</description>
+		</method>
+		<method name="create_vector2" qualifiers="static">
+			<return type="InputActionValue" />
+			<param index="0" name="value" type="Vector2" />
+			<description>
+			</description>
+		</method>
+		<method name="create_vector3" qualifiers="static">
+			<return type="InputActionValue" />
+			<param index="0" name="value" type="Vector3" />
+			<description>
+			</description>
+		</method>
+		<method name="get_bool" qualifiers="const">
+			<return type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="get_float" qualifiers="const">
+			<return type="float" />
+			<description>
+			</description>
+		</method>
+		<method name="get_raw" qualifiers="const">
+			<return type="Vector3" />
+			<description>
+			</description>
+		</method>
+		<method name="get_value_type" qualifiers="const">
+			<return type="int" enum="InputActionValue.ValueType" />
+			<description>
+			</description>
+		</method>
+		<method name="get_vector2" qualifiers="const">
+			<return type="Vector2" />
+			<description>
+			</description>
+		</method>
+		<method name="get_vector3" qualifiers="const">
+			<return type="Vector3" />
+			<description>
+			</description>
+		</method>
+		<method name="is_non_zero" qualifiers="const">
+			<return type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="set_raw">
+			<return type="void" />
+			<param index="0" name="value" type="Vector3" />
+			<description>
+			</description>
+		</method>
+		<method name="set_value_type">
+			<return type="void" />
+			<param index="0" name="type" type="int" enum="InputActionValue.ValueType" />
+			<description>
+			</description>
+		</method>
+	</methods>
+	<constants>
+		<constant name="BOOL" value="0" enum="ValueType">
+		</constant>
+		<constant name="FLOAT" value="1" enum="ValueType">
+		</constant>
+		<constant name="VECTOR2" value="2" enum="ValueType">
+		</constant>
+		<constant name="VECTOR3" value="3" enum="ValueType">
+		</constant>
+	</constants>
+</class>

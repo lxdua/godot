@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="GameplayTag" inherits="RefCounted" api_type="core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>
+	</brief_description>
+	<description>
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="create" qualifiers="static">
+			<return type="GameplayTag" />
+			<param index="0" name="tag_name" type="StringName" />
+			<description>
+			</description>
+		</method>
+		<method name="get_ancestor_tags" qualifiers="const">
+			<return type="GameplayTag[]" />
+			<description>
+			</description>
+		</method>
+		<method name="get_depth" qualifiers="const">
+			<return type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="get_parent_tag" qualifiers="const">
+			<return type="GameplayTag" />
+			<description>
+			</description>
+		</method>
+		<method name="is_child_of" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="parent" type="GameplayTag" />
+			<description>
+			</description>
+		</method>
+		<method name="is_valid" qualifiers="const">
+			<return type="bool" />
+			<description>
+			</description>
+		</method>
+		<method name="matches_tag" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="other" type="GameplayTag" />
+			<description>
+			</description>
+		</method>
+		<method name="matches_tag_exact" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="other" type="GameplayTag" />
+			<description>
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="tag_name" type="StringName" setter="set_tag_name" getter="get_tag_name" default="&amp;&quot;&quot;">
+		</member>
+	</members>
+</class>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="InputModifierNegate" inherits="InputModifier" api_type="core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>
+	</brief_description>
+	<description>
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="negate_x" type="bool" setter="set_negate_x" getter="get_negate_x" default="false">
+		</member>
+		<member name="negate_y" type="bool" setter="set_negate_y" getter="get_negate_y" default="false">
+		</member>
+		<member name="negate_z" type="bool" setter="set_negate_z" getter="get_negate_z" default="false">
+		</member>
+	</members>
+</class>

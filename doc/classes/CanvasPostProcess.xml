@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<class name="CanvasPostProcess" inherits="Control" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../class.xsd">
+<class name="CanvasPostProcess" inherits="Control" api_type="core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../class.xsd">
 	<brief_description>
 		Applies post-processing effects to 2D canvas rendering.
 	</brief_description>
@@ -10,62 +10,32 @@
 	<tutorials>
 	</tutorials>
 	<members>
-		<member name="pixelation_enabled" type="bool" setter="set_pixelation_enabled" getter="get_pixelation_enabled" default="false">
-			If [code]true[/code], enables the pixelation effect which reduces the effective resolution.
-		</member>
-		<member name="pixelation_size" type="int" setter="set_pixel_size" getter="get_pixel_size" default="4">
-			The size of each pixel block in the pixelation effect. Larger values produce a more pixelated appearance.
-		</member>
-		<member name="chromatic_aberration_enabled" type="bool" setter="set_chromatic_aberration_enabled" getter="get_chromatic_aberration_enabled" default="false">
-			If [code]true[/code], enables chromatic aberration which shifts RGB channels apart, simulating lens distortion.
-		</member>
-		<member name="chromatic_aberration_strength" type="float" setter="set_chromatic_aberration_strength" getter="get_chromatic_aberration_strength" default="1.0">
-			Controls the intensity of the chromatic aberration effect. Higher values produce more visible color fringing.
-		</member>
-		<member name="blur_enabled" type="bool" setter="set_blur_enabled" getter="get_blur_enabled" default="false">
-			If [code]true[/code], enables the gaussian blur effect.
-		</member>
-		<member name="blur_strength" type="float" setter="set_blur_strength" getter="get_blur_strength" default="2.0">
-			Controls the radius/strength of the blur. Higher values produce a more blurred image.
-		</member>
-		<member name="blur_iterations" type="int" setter="set_blur_iterations" getter="get_blur_iterations" default="1">
-			The number of blur iterations. More iterations produce a smoother blur but cost more performance.
-		</member>
-		<member name="radial_blur_enabled" type="bool" setter="set_radial_blur_enabled" getter="get_radial_blur_enabled" default="false">
-			If [code]true[/code], enables radial blur which blurs outward from a center point, creating a zoom/speed effect.
-		</member>
-		<member name="radial_blur_strength" type="float" setter="set_radial_blur_strength" getter="get_radial_blur_strength" default="0.02">
-			Controls the intensity of the radial blur. Higher values produce a stronger zoom blur.
-		</member>
-		<member name="radial_blur_samples" type="int" setter="set_radial_blur_samples" getter="get_radial_blur_samples" default="16">
-			The number of samples for radial blur. More samples produce smoother results but cost more performance.
-		</member>
-		<member name="radial_blur_center" type="Vector2" setter="set_radial_blur_center" getter="get_radial_blur_center" default="Vector2(0.5, 0.5)">
-			The center point of the radial blur in UV coordinates (0.0 to 1.0). Default is the screen center.
-		</member>
-		<member name="adjustment_enabled" type="bool" setter="set_adjustment_enabled" getter="get_adjustment_enabled" default="false">
-			If [code]true[/code], enables color adjustment (brightness, contrast, saturation).
-		</member>
 		<member name="adjustment_brightness" type="float" setter="set_brightness" getter="get_brightness" default="1.0">
 			Multiplier for the overall brightness. Values above 1.0 brighten the image, values below 1.0 darken it.
 		</member>
 		<member name="adjustment_contrast" type="float" setter="set_contrast" getter="get_contrast" default="1.0">
 			Controls the contrast. Values above 1.0 increase contrast, values below 1.0 reduce it.
 		</member>
+		<member name="adjustment_enabled" type="bool" setter="set_adjustment_enabled" getter="get_adjustment_enabled" default="false">
+			If [code]true[/code], enables color adjustment (brightness, contrast, saturation).
+		</member>
 		<member name="adjustment_saturation" type="float" setter="set_saturation" getter="get_saturation" default="1.0">
 			Controls the color saturation. A value of 0.0 produces a grayscale image, values above 1.0 produce more vivid colors.
 		</member>
-		<member name="scanlines_enabled" type="bool" setter="set_scanlines_enabled" getter="get_scanlines_enabled" default="false">
-			If [code]true[/code], enables the scanlines effect which overlays horizontal lines simulating a CRT display.
+		<member name="blur_enabled" type="bool" setter="set_blur_enabled" getter="get_blur_enabled" default="false">
+			If [code]true[/code], enables the gaussian blur effect.
 		</member>
-		<member name="scanlines_density" type="float" setter="set_scanlines_density" getter="get_scanlines_density" default="1.0">
-			Controls the density (frequency) of the scanlines. Higher values produce thinner, more closely spaced lines.
+		<member name="blur_iterations" type="int" setter="set_blur_iterations" getter="get_blur_iterations" default="1">
+			The number of blur iterations. More iterations produce a smoother blur but cost more performance.
 		</member>
-		<member name="scanlines_opacity" type="float" setter="set_scanlines_opacity" getter="get_scanlines_opacity" default="0.3">
-			Controls the opacity/visibility of the scanlines. Higher values make the lines more pronounced.
+		<member name="blur_strength" type="float" setter="set_blur_strength" getter="get_blur_strength" default="2.0">
+			Controls the radius/strength of the blur. Higher values produce a more blurred image.
 		</member>
-		<member name="scanlines_speed" type="float" setter="set_scanlines_speed" getter="get_scanlines_speed" default="0.0">
-			Controls the scrolling speed of the scanlines. A value of 0.0 keeps them static.
+		<member name="chromatic_aberration_enabled" type="bool" setter="set_chromatic_aberration_enabled" getter="get_chromatic_aberration_enabled" default="false">
+			If [code]true[/code], enables chromatic aberration which shifts RGB channels apart, simulating lens distortion.
+		</member>
+		<member name="chromatic_aberration_strength" type="float" setter="set_chromatic_aberration_strength" getter="get_chromatic_aberration_strength" default="1.0">
+			Controls the intensity of the chromatic aberration effect. Higher values produce more visible color fringing.
 		</member>
 		<member name="grain_enabled" type="bool" setter="set_grain_enabled" getter="get_grain_enabled" default="false">
 			If [code]true[/code], enables the film grain effect which adds random noise to simulate a cinematic look.
@@ -76,6 +46,40 @@
 		<member name="grain_speed" type="float" setter="set_grain_speed" getter="get_grain_speed" default="15.0">
 			Controls how fast the grain pattern changes. Higher values produce more rapid flickering.
 		</member>
+		<member name="mouse_filter" type="int" setter="set_mouse_filter" getter="get_mouse_filter" overrides="Control" enum="Control.MouseFilter" default="2" />
+		<member name="pixelation_enabled" type="bool" setter="set_pixelation_enabled" getter="get_pixelation_enabled" default="false">
+			If [code]true[/code], enables the pixelation effect which reduces the effective resolution.
+		</member>
+		<member name="pixelation_size" type="int" setter="set_pixel_size" getter="get_pixel_size" default="4">
+			The size of each pixel block in the pixelation effect. Larger values produce a more pixelated appearance.
+		</member>
+		<member name="radial_blur_center" type="Vector2" setter="set_radial_blur_center" getter="get_radial_blur_center" default="Vector2(0.5, 0.5)">
+			The center point of the radial blur in UV coordinates (0.0 to 1.0). Default is the screen center.
+		</member>
+		<member name="radial_blur_enabled" type="bool" setter="set_radial_blur_enabled" getter="get_radial_blur_enabled" default="false">
+			If [code]true[/code], enables radial blur which blurs outward from a center point, creating a zoom/speed effect.
+		</member>
+		<member name="radial_blur_samples" type="int" setter="set_radial_blur_samples" getter="get_radial_blur_samples" default="16">
+			The number of samples for radial blur. More samples produce smoother results but cost more performance.
+		</member>
+		<member name="radial_blur_strength" type="float" setter="set_radial_blur_strength" getter="get_radial_blur_strength" default="0.02">
+			Controls the intensity of the radial blur. Higher values produce a stronger zoom blur.
+		</member>
+		<member name="scanlines_density" type="float" setter="set_scanlines_density" getter="get_scanlines_density" default="1.0">
+			Controls the density (frequency) of the scanlines. Higher values produce thinner, more closely spaced lines.
+		</member>
+		<member name="scanlines_enabled" type="bool" setter="set_scanlines_enabled" getter="get_scanlines_enabled" default="false">
+			If [code]true[/code], enables the scanlines effect which overlays horizontal lines simulating a CRT display.
+		</member>
+		<member name="scanlines_opacity" type="float" setter="set_scanlines_opacity" getter="get_scanlines_opacity" default="0.3">
+			Controls the opacity/visibility of the scanlines. Higher values make the lines more pronounced.
+		</member>
+		<member name="scanlines_speed" type="float" setter="set_scanlines_speed" getter="get_scanlines_speed" default="0.0">
+			Controls the scrolling speed of the scanlines. A value of 0.0 keeps them static.
+		</member>
+		<member name="vignette_color" type="Color" setter="set_vignette_color" getter="get_vignette_color" default="Color(0, 0, 0, 1)">
+			The color used for the vignette effect. The alpha channel controls the overall vignette opacity.
+		</member>
 		<member name="vignette_enabled" type="bool" setter="set_vignette_enabled" getter="get_vignette_enabled" default="false">
 			If [code]true[/code], enables the vignette effect which darkens the edges of the screen.
 		</member>
@@ -85,8 +89,6 @@
 		<member name="vignette_softness" type="float" setter="set_vignette_softness" getter="get_vignette_softness" default="2.0">
 			Controls the softness of the vignette transition. Higher values produce a smoother gradient.
 		</member>
-		<member name="vignette_color" type="Color" setter="set_vignette_color" getter="get_vignette_color" default="Color(0, 0, 0, 1)">
-			The color used for the vignette effect. The alpha channel controls the overall vignette opacity.
-		</member>
+		<member name="z_index" type="int" setter="set_z_index" getter="get_z_index" overrides="CanvasItem" default="4096" />
 	</members>
 </class>

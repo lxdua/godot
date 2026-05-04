@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="InputModifierDeadZone" inherits="InputModifier" api_type="core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>
+	</brief_description>
+	<description>
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="dead_zone_type" type="int" setter="set_dead_zone_type" getter="get_dead_zone_type" enum="InputModifierDeadZone.DeadZoneType" default="1">
+		</member>
+		<member name="lower_threshold" type="float" setter="set_lower_threshold" getter="get_lower_threshold" default="0.2">
+		</member>
+		<member name="upper_threshold" type="float" setter="set_upper_threshold" getter="get_upper_threshold" default="1.0">
+		</member>
+	</members>
+	<constants>
+		<constant name="AXIAL" value="0" enum="DeadZoneType">
+		</constant>
+		<constant name="RADIAL" value="1" enum="DeadZoneType">
+		</constant>
+	</constants>
+</class>

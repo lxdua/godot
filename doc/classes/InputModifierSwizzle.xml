@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="InputModifierSwizzle" inherits="InputModifier" api_type="core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../class.xsd">
+	<brief_description>
+	</brief_description>
+	<description>
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="order" type="int" setter="set_order" getter="get_order" enum="InputModifierSwizzle.SwizzleOrder" default="1">
+		</member>
+	</members>
+	<constants>
+		<constant name="SWIZZLE_XYZ" value="0" enum="SwizzleOrder">
+		</constant>
+		<constant name="SWIZZLE_YXZ" value="1" enum="SwizzleOrder">
+		</constant>
+		<constant name="SWIZZLE_ZYX" value="2" enum="SwizzleOrder">
+		</constant>
+		<constant name="SWIZZLE_XZY" value="3" enum="SwizzleOrder">
+		</constant>
+		<constant name="SWIZZLE_YZX" value="4" enum="SwizzleOrder">
+		</constant>
+		<constant name="SWIZZLE_ZXY" value="5" enum="SwizzleOrder">
+		</constant>
+	</constants>
+</class>
