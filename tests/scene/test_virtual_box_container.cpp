@@ -43,6 +43,14 @@ TEST_FORCE_LINK(test_virtual_box_container)
 
 namespace TestVirtualBoxContainer {
 
+// Helper: parent a node under the SceneTree root. Spelled out as a free
+// function so the dependency on `Window` (returned by `SceneTree::get_root()`)
+// is explicit at the call site, rather than buried in a chained method call.
+static void add_to_root(Node *p_node) {
+	Window *root = SceneTree::get_singleton()->get_root();
+	root->add_child(p_node);
+}
+
 // Helper: build a trivial PackedScene whose root is a Control with a Label
 // child. Matches the "template scene" pattern end-users are expected to feed
 // into `item_scene`.
@@ -79,7 +87,7 @@ static int count_visible_children(Node *p_parent) {
 
 TEST_CASE("[SceneTree][VirtualBoxContainer] Default property values") {
 	VirtualBoxContainer *vbc = memnew(VirtualBoxContainer);
-	SceneTree::get_singleton()->get_root()->add_child(vbc);
+	add_to_root(vbc);
 
 	CHECK(vbc->get_item_count() == 0);
 	CHECK(vbc->is_vertical() == true);
@@ -95,7 +103,7 @@ TEST_CASE("[SceneTree][VirtualBoxContainer] Default property values") {
 
 TEST_CASE("[SceneTree][VirtualBoxContainer] Property set/get round-trips") {
 	VirtualBoxContainer *vbc = memnew(VirtualBoxContainer);
-	SceneTree::get_singleton()->get_root()->add_child(vbc);
+	add_to_root(vbc);
 
 	Ref<PackedScene> ps = make_item_scene();
 	vbc->set_item_scene(ps);
@@ -129,7 +137,7 @@ TEST_CASE("[SceneTree][VirtualBoxContainer] Property set/get round-trips") {
 
 TEST_CASE("[SceneTree][VirtualBoxContainer] Minimum size depends on item_count") {
 	VirtualBoxContainer *vbc = memnew(VirtualBoxContainer);
-	SceneTree::get_singleton()->get_root()->add_child(vbc);
+	add_to_root(vbc);
 	MessageQueue::get_singleton()->flush();
 
 	// Empty list has no main-axis length.
@@ -158,7 +166,7 @@ TEST_CASE("[SceneTree][VirtualBoxContainer] Minimum size depends on item_count")
 TEST_CASE("[SceneTree][VirtualBoxContainer] Virtualization with ScrollContainer parent") {
 	ScrollContainer *sc = memnew(ScrollContainer);
 	sc->set_size(Size2(200, 240));
-	SceneTree::get_singleton()->get_root()->add_child(sc);
+	add_to_root(sc);
 
 	VirtualBoxContainer *vbc = memnew(VirtualBoxContainer);
 	vbc->set_item_scene(make_item_scene());
@@ -205,7 +213,7 @@ TEST_CASE("[SceneTree][VirtualBoxContainer] Virtualization with ScrollContainer 
 TEST_CASE("[SceneTree][VirtualBoxContainer] Scrolling changes the visible range") {
 	ScrollContainer *sc = memnew(ScrollContainer);
 	sc->set_size(Size2(200, 240));
-	SceneTree::get_singleton()->get_root()->add_child(sc);
+	add_to_root(sc);
 
 	VirtualBoxContainer *vbc = memnew(VirtualBoxContainer);
 	vbc->set_item_scene(make_item_scene());
@@ -240,7 +248,7 @@ TEST_CASE("[SceneTree][VirtualBoxContainer] Scrolling changes the visible range"
 TEST_CASE("[SceneTree][VirtualBoxContainer] Node pool bounds active child count") {
 	ScrollContainer *sc = memnew(ScrollContainer);
 	sc->set_size(Size2(200, 240));
-	SceneTree::get_singleton()->get_root()->add_child(sc);
+	add_to_root(sc);
 
 	VirtualBoxContainer *vbc = memnew(VirtualBoxContainer);
 	vbc->set_item_scene(make_item_scene());
@@ -269,7 +277,7 @@ TEST_CASE("[SceneTree][VirtualBoxContainer] Node pool bounds active child count"
 TEST_CASE("[SceneTree][VirtualBoxContainer] Toggling vertical axis re-binds axis") {
 	ScrollContainer *sc = memnew(ScrollContainer);
 	sc->set_size(Size2(240, 240));
-	SceneTree::get_singleton()->get_root()->add_child(sc);
+	add_to_root(sc);
 
 	VirtualBoxContainer *vbc = memnew(VirtualBoxContainer);
 	vbc->set_item_scene(make_item_scene());
@@ -309,7 +317,7 @@ TEST_CASE("[SceneTree][VirtualBoxContainer] Toggling vertical axis re-binds axis
 TEST_CASE("[SceneTree][VirtualBoxContainer] scroll_to_index makes the target visible") {
 	ScrollContainer *sc = memnew(ScrollContainer);
 	sc->set_size(Size2(200, 240));
-	SceneTree::get_singleton()->get_root()->add_child(sc);
+	add_to_root(sc);
 
 	VirtualBoxContainer *vbc = memnew(VirtualBoxContainer);
 	vbc->set_item_scene(make_item_scene());
@@ -368,7 +376,7 @@ TEST_CASE("[SceneTree][VirtualBoxContainer] scroll_to_index makes the target vis
 TEST_CASE("[SceneTree][VirtualBoxContainer] Replacing item_scene releases all bindings") {
 	ScrollContainer *sc = memnew(ScrollContainer);
 	sc->set_size(Size2(200, 240));
-	SceneTree::get_singleton()->get_root()->add_child(sc);
+	add_to_root(sc);
 
 	VirtualBoxContainer *vbc = memnew(VirtualBoxContainer);
 	vbc->set_item_scene(make_item_scene());
@@ -408,7 +416,7 @@ TEST_CASE("[SceneTree][VirtualBoxContainer] Works without a ScrollContainer ance
 	vbc->set_buffer_items(0);
 	vbc->set_size(Size2(200, 240));
 	vbc->set_item_count(100);
-	SceneTree::get_singleton()->get_root()->add_child(vbc);
+	add_to_root(vbc);
 	MessageQueue::get_singleton()->flush();
 
 	const int first = vbc->get_first_visible_index();
@@ -434,7 +442,7 @@ TEST_CASE("[SceneTree][VirtualBoxContainer] Zero-sized items do not explode") {
 	// empty visible range instead of trying to instantiate item_count nodes.
 	ScrollContainer *sc = memnew(ScrollContainer);
 	sc->set_size(Size2(200, 240));
-	SceneTree::get_singleton()->get_root()->add_child(sc);
+	add_to_root(sc);
 
 	VirtualBoxContainer *vbc = memnew(VirtualBoxContainer);
 	vbc->set_item_scene(make_item_scene());
@@ -453,7 +461,7 @@ TEST_CASE("[SceneTree][VirtualBoxContainer] Zero-sized items do not explode") {
 TEST_CASE("[SceneTree][VirtualBoxContainer] Empty list: no children bound") {
 	ScrollContainer *sc = memnew(ScrollContainer);
 	sc->set_size(Size2(200, 240));
-	SceneTree::get_singleton()->get_root()->add_child(sc);
+	add_to_root(sc);
 
 	VirtualBoxContainer *vbc = memnew(VirtualBoxContainer);
 	vbc->set_item_scene(make_item_scene());
@@ -473,7 +481,7 @@ TEST_CASE("[SceneTree][VirtualBoxContainer] Empty list: no children bound") {
 TEST_CASE("[SceneTree][VirtualBoxContainer] item_count shrink evicts out-of-range bindings") {
 	ScrollContainer *sc = memnew(ScrollContainer);
 	sc->set_size(Size2(200, 240));
-	SceneTree::get_singleton()->get_root()->add_child(sc);
+	add_to_root(sc);
 
 	VirtualBoxContainer *vbc = memnew(VirtualBoxContainer);
 	vbc->set_item_scene(make_item_scene());
