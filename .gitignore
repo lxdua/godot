@@ -24,6 +24,7 @@
 
 /custom.py
 misc/hooks/pre-commit-custom-*
+scripts/config.local.sh
 
 #############################
 ### Godot generated files ###
