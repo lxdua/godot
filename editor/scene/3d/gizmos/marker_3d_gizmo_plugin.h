@@ -36,6 +36,8 @@ class Marker3DGizmoPlugin : public EditorNode3DGizmoPlugin {
 	GDCLASS(Marker3DGizmoPlugin, EditorNode3DGizmoPlugin);
 
 	Ref<ArrayMesh> pos3d_mesh;
+	Ref<BoxMesh> pos3d_box_mesh;
+	Ref<TriangleMesh> pos3d_box_triangle_mesh;
 
 public:
 	bool has_gizmo(Node3D *p_spatial) override;

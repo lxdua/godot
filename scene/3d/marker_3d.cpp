@@ -62,6 +62,18 @@ float Marker3D::get_gizmo_opacity() const {
 	return gizmo_opacity;
 }
 
+void Marker3D::set_gizmo_shape(GizmoShape p_shape) {
+	if (gizmo_shape == p_shape) {
+		return;
+	}
+	gizmo_shape = p_shape;
+	update_gizmos();
+}
+
+Marker3D::GizmoShape Marker3D::get_gizmo_shape() const {
+	return gizmo_shape;
+}
+
 void Marker3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_gizmo_extents", "extents"), &Marker3D::set_gizmo_extents);
 	ClassDB::bind_method(D_METHOD("get_gizmo_extents"), &Marker3D::get_gizmo_extents);
@@ -69,10 +81,16 @@ void Marker3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_gizmo_color"), &Marker3D::get_gizmo_color);
 	ClassDB::bind_method(D_METHOD("set_gizmo_opacity", "opacity"), &Marker3D::set_gizmo_opacity);
 	ClassDB::bind_method(D_METHOD("get_gizmo_opacity"), &Marker3D::get_gizmo_opacity);
+	ClassDB::bind_method(D_METHOD("set_gizmo_shape", "shape"), &Marker3D::set_gizmo_shape);
+	ClassDB::bind_method(D_METHOD("get_gizmo_shape"), &Marker3D::get_gizmo_shape);
 
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "gizmo_extents", PROPERTY_HINT_RANGE, "0,10,0.01,or_greater,suffix:m"), "set_gizmo_extents", "get_gizmo_extents");
 	ADD_PROPERTY(PropertyInfo(Variant::COLOR, "gizmo_color"), "set_gizmo_color", "get_gizmo_color");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "gizmo_opacity", PROPERTY_HINT_RANGE, "0,1,0.01"), "set_gizmo_opacity", "get_gizmo_opacity");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "gizmo_shape", PROPERTY_HINT_ENUM, "Cross,Box"), "set_gizmo_shape", "get_gizmo_shape");
+
+	BIND_ENUM_CONSTANT(GIZMO_SHAPE_CROSS);
+	BIND_ENUM_CONSTANT(GIZMO_SHAPE_BOX);
 }
 
 Marker3D::Marker3D() {

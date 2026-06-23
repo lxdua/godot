@@ -33,6 +33,7 @@
 #include "editor/editor_node.h"
 #include "editor/editor_string_names.h"
 #include "scene/3d/marker_3d.h"
+#include "scene/resources/3d/box_mesh.h"
 
 Marker3DGizmoPlugin::Marker3DGizmoPlugin() {
 	pos3d_mesh.instantiate();
@@ -91,6 +92,10 @@ Marker3DGizmoPlugin::Marker3DGizmoPlugin() {
 	d[Mesh::ARRAY_COLOR] = cursor_colors;
 	pos3d_mesh->add_surface_from_arrays(Mesh::PRIMITIVE_LINES, d);
 	pos3d_mesh->surface_set_material(0, mat);
+
+	pos3d_box_mesh.instantiate();
+	pos3d_box_mesh->set_size(Vector3(2, 2, 2));
+	pos3d_box_triangle_mesh = pos3d_box_mesh->generate_triangle_mesh();
 }
 
 bool Marker3DGizmoPlugin::has_gizmo(Node3D *p_spatial) {
@@ -116,69 +121,89 @@ void Marker3DGizmoPlugin::redraw(EditorNode3DGizmo *p_gizmo) {
 	const float opacity = marker->get_gizmo_opacity();
 	const bool use_default_color = custom_color == Color(1, 1, 1, 1) && Math::is_equal_approx(opacity, 1.0f);
 
-	if (use_default_color) {
-		p_gizmo->add_mesh(pos3d_mesh, Ref<Material>(), xform);
+	if (marker->get_gizmo_shape() == Marker3D::GIZMO_SHAPE_BOX) {
+		// BOX shape: render a solid box, easier to click and more visible at distance.
+		Ref<StandardMaterial3D> box_mat = memnew(StandardMaterial3D);
+		box_mat->set_shading_mode(StandardMaterial3D::SHADING_MODE_UNSHADED);
+		box_mat->set_flag(StandardMaterial3D::FLAG_DISABLE_FOG, true);
+		box_mat->set_transparency(StandardMaterial3D::TRANSPARENCY_ALPHA);
+
+		Color box_color;
+		if (use_default_color) {
+			box_color = Color(0.5, 0.5, 0.5, 0.6);
+		} else {
+			box_color = custom_color;
+			box_color.a = opacity;
+		}
+		box_mat->set_albedo(box_color);
+
+		p_gizmo->add_mesh(pos3d_box_mesh, box_mat, xform);
+		p_gizmo->add_collision_triangles(pos3d_box_triangle_mesh);
 	} else {
-		// Generate per-marker lines with custom color and opacity.
-		Vector<Vector3> cursor_points;
-		Vector<Color> cursor_colors;
-		const float cs = 1.0;
+		// CROSS shape: axis-colored lines, backward compatible.
+		if (use_default_color) {
+			p_gizmo->add_mesh(pos3d_mesh, Ref<Material>(), xform);
+		} else {
+			// Generate per-marker lines with custom color and opacity.
+			Vector<Vector3> cursor_points;
+			Vector<Color> cursor_colors;
+			const float cs = 1.0;
 
-		cursor_points.push_back(Vector3(+cs, 0, 0));
-		cursor_points.push_back(Vector3());
-		cursor_points.push_back(Vector3());
-		cursor_points.push_back(Vector3(-cs, 0, 0));
+			cursor_points.push_back(Vector3(+cs, 0, 0));
+			cursor_points.push_back(Vector3());
+			cursor_points.push_back(Vector3());
+			cursor_points.push_back(Vector3(-cs, 0, 0));
 
-		cursor_points.push_back(Vector3(0, +cs, 0));
-		cursor_points.push_back(Vector3());
-		cursor_points.push_back(Vector3());
-		cursor_points.push_back(Vector3(0, -cs, 0));
+			cursor_points.push_back(Vector3(0, +cs, 0));
+			cursor_points.push_back(Vector3());
+			cursor_points.push_back(Vector3());
+			cursor_points.push_back(Vector3(0, -cs, 0));
 
-		cursor_points.push_back(Vector3(0, 0, +cs));
-		cursor_points.push_back(Vector3());
-		cursor_points.push_back(Vector3());
-		cursor_points.push_back(Vector3(0, 0, -cs));
+			cursor_points.push_back(Vector3(0, 0, +cs));
+			cursor_points.push_back(Vector3());
+			cursor_points.push_back(Vector3());
+			cursor_points.push_back(Vector3(0, 0, -cs));
 
-		Color positive_color = custom_color;
-		positive_color.a = opacity;
-		Color negative_color = custom_color.darkened(0.5);
-		negative_color.a = opacity;
+			Color positive_color = custom_color;
+			positive_color.a = opacity;
+			Color negative_color = custom_color.darkened(0.5);
+			negative_color.a = opacity;
 
-		// 4 colors per axis: +bright, +bright, -dark, -dark
-		for (int i = 0; i < 3; i++) {
-			cursor_colors.push_back(positive_color);
-			cursor_colors.push_back(positive_color);
-			cursor_colors.push_back(negative_color);
-			cursor_colors.push_back(negative_color);
+			for (int i = 0; i < 3; i++) {
+				cursor_colors.push_back(positive_color);
+				cursor_colors.push_back(positive_color);
+				cursor_colors.push_back(negative_color);
+				cursor_colors.push_back(negative_color);
+			}
+
+			Ref<StandardMaterial3D> mat = memnew(StandardMaterial3D);
+			mat->set_shading_mode(StandardMaterial3D::SHADING_MODE_UNSHADED);
+			mat->set_flag(StandardMaterial3D::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
+			mat->set_flag(StandardMaterial3D::FLAG_SRGB_VERTEX_COLOR, true);
+			mat->set_flag(StandardMaterial3D::FLAG_DISABLE_FOG, true);
+			mat->set_transparency(StandardMaterial3D::TRANSPARENCY_ALPHA);
+
+			Array d;
+			d.resize(RSE::ARRAY_MAX);
+			d[Mesh::ARRAY_VERTEX] = cursor_points;
+			d[Mesh::ARRAY_COLOR] = cursor_colors;
+
+			Ref<ArrayMesh> custom_mesh;
+			custom_mesh.instantiate();
+			custom_mesh->add_surface_from_arrays(Mesh::PRIMITIVE_LINES, d);
+			custom_mesh->surface_set_material(0, mat);
+
+			p_gizmo->add_mesh(custom_mesh, Ref<Material>(), xform);
 		}
 
-		Ref<StandardMaterial3D> mat = memnew(StandardMaterial3D);
-		mat->set_shading_mode(StandardMaterial3D::SHADING_MODE_UNSHADED);
-		mat->set_flag(StandardMaterial3D::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
-		mat->set_flag(StandardMaterial3D::FLAG_SRGB_VERTEX_COLOR, true);
-		mat->set_flag(StandardMaterial3D::FLAG_DISABLE_FOG, true);
-		mat->set_transparency(StandardMaterial3D::TRANSPARENCY_ALPHA);
-
-		Array d;
-		d.resize(RSE::ARRAY_MAX);
-		d[Mesh::ARRAY_VERTEX] = cursor_points;
-		d[Mesh::ARRAY_COLOR] = cursor_colors;
-
-		Ref<ArrayMesh> custom_mesh;
-		custom_mesh.instantiate();
-		custom_mesh->add_surface_from_arrays(Mesh::PRIMITIVE_LINES, d);
-		custom_mesh->surface_set_material(0, mat);
-
-		p_gizmo->add_mesh(custom_mesh, Ref<Material>(), xform);
+		const Vector<Vector3> points = {
+			Vector3(-extents, 0, 0),
+			Vector3(+extents, 0, 0),
+			Vector3(0, -extents, 0),
+			Vector3(0, +extents, 0),
+			Vector3(0, 0, -extents),
+			Vector3(0, 0, +extents),
+		};
+		p_gizmo->add_collision_segments(points);
 	}
-
-	const Vector<Vector3> points = {
-		Vector3(-extents, 0, 0),
-		Vector3(+extents, 0, 0),
-		Vector3(0, -extents, 0),
-		Vector3(0, +extents, 0),
-		Vector3(0, 0, -extents),
-		Vector3(0, 0, +extents),
-	};
-	p_gizmo->add_collision_segments(points);
 }

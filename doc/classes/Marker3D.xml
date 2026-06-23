@@ -4,7 +4,7 @@
 		Generic 3D position hint for editing.
 	</brief_description>
 	<description>
-		Generic 3D position hint for editing. It's just like a plain [Node3D], but it displays as a cross in the 3D editor at all times.
+		Generic 3D position hint for editing. It's just like a plain [Node3D], but it displays as a cross or box in the 3D editor at all times. The shape, color, opacity, and size of the gizmo can be customized to help visually categorize markers by purpose (e.g. red boxes for enemy spawn points, green crosses for item locations).
 	</description>
 	<tutorials>
 	</tutorials>
@@ -16,7 +16,18 @@
 			Size of the gizmo cross that appears in the editor.
 		</member>
 		<member name="gizmo_opacity" type="float" setter="set_gizmo_opacity" getter="get_gizmo_opacity" default="1.0">
-			Opacity of the gizmo cross that appears in the editor. A lower value makes the gizmo more transparent, which can be useful to reduce visual clutter when the selected marker overlaps with other markers or scene elements.
+			Opacity of the gizmo that appears in the editor. A lower value makes the gizmo more transparent, which can be useful to reduce visual clutter when the selected marker overlaps with other markers or scene elements.
+		</member>
+		<member name="gizmo_shape" type="int" setter="set_gizmo_shape" getter="get_gizmo_shape" default="0" enum="GizmoShape">
+			Shape of the gizmo that appears in the editor. [constant GIZMO_SHAPE_CROSS] displays the classic 3-axis cross (default). [constant GIZMO_SHAPE_BOX] displays a solid box, which is easier to click and more visible at long distances.
 		</member>
 	</members>
+	<constants>
+		<constant name="GIZMO_SHAPE_CROSS" value="0" enum="GizmoShape">
+			Displays the gizmo as a 3-axis cross. Positive axis directions are brighter, negative directions are darker.
+		</constant>
+		<constant name="GIZMO_SHAPE_BOX" value="1" enum="GizmoShape">
+			Displays the gizmo as a solid box. The box uses [member gizmo_color] and [member gizmo_opacity] for its appearance, making markers easier to click and more visible at a distance.
+		</constant>
+	</constants>
 </class>
