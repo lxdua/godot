@@ -31,6 +31,7 @@
 #pragma once
 
 #include "editor/scene/3d/node_3d_editor_gizmos.h"
+#include "scene/resources/3d/primitive_meshes.h"
 
 class Marker3DGizmoPlugin : public EditorNode3DGizmoPlugin {
 	GDCLASS(Marker3DGizmoPlugin, EditorNode3DGizmoPlugin);
