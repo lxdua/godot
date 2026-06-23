@@ -35,7 +35,17 @@
 class Marker3D : public Node3D {
 	GDCLASS(Marker3D, Node3D);
 
+public:
+	enum GizmoShape {
+		GIZMO_SHAPE_CROSS,
+		GIZMO_SHAPE_BOX,
+	};
+
+private:
 	real_t gizmo_extents = 0.25;
+	Color gizmo_color = Color(1, 1, 1, 1);
+	float gizmo_opacity = 1.0f;
+	GizmoShape gizmo_shape = GIZMO_SHAPE_CROSS;
 
 protected:
 	static void _bind_methods();
@@ -44,5 +54,16 @@ public:
 	void set_gizmo_extents(real_t p_extents);
 	real_t get_gizmo_extents() const;
 
+	void set_gizmo_color(const Color &p_color);
+	Color get_gizmo_color() const;
+
+	void set_gizmo_opacity(float p_opacity);
+	float get_gizmo_opacity() const;
+
+	void set_gizmo_shape(GizmoShape p_shape);
+	GizmoShape get_gizmo_shape() const;
+
 	Marker3D();
 };
+
+VARIANT_ENUM_CAST(Marker3D::GizmoShape);

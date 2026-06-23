@@ -31,11 +31,14 @@
 #pragma once
 
 #include "editor/scene/3d/node_3d_editor_gizmos.h"
+#include "scene/resources/3d/primitive_meshes.h"
 
 class Marker3DGizmoPlugin : public EditorNode3DGizmoPlugin {
 	GDCLASS(Marker3DGizmoPlugin, EditorNode3DGizmoPlugin);
 
 	Ref<ArrayMesh> pos3d_mesh;
+	Ref<BoxMesh> pos3d_box_mesh;
+	Ref<TriangleMesh> pos3d_box_triangle_mesh;
 
 public:
 	bool has_gizmo(Node3D *p_spatial) override;
