@@ -9,8 +9,14 @@
 	<tutorials>
 	</tutorials>
 	<members>
+		<member name="gizmo_color" type="Color" setter="set_gizmo_color" getter="get_gizmo_color" default="Color(1, 1, 1, 1)">
+			Color of the gizmo cross that appears in the 3D editor. When set to white (the default), the gizmo uses the editor theme's axis colors (red for X, green for Y, blue for Z) to help distinguish orientation. When set to any other color, all 3 axes use the specified color, with the positive direction appearing brighter and the negative direction appearing darker.
+		</member>
 		<member name="gizmo_extents" type="float" setter="set_gizmo_extents" getter="get_gizmo_extents" default="0.25">
 			Size of the gizmo cross that appears in the editor.
+		</member>
+		<member name="gizmo_opacity" type="float" setter="set_gizmo_opacity" getter="get_gizmo_opacity" default="1.0">
+			Opacity of the gizmo cross that appears in the editor. A lower value makes the gizmo more transparent, which can be useful to reduce visual clutter when the selected marker overlaps with other markers or scene elements.
 		</member>
 	</members>
 </class>

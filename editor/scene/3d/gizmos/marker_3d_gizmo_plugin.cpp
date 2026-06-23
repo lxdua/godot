@@ -111,7 +111,66 @@ void Marker3DGizmoPlugin::redraw(EditorNode3DGizmo *p_gizmo) {
 	const Transform3D xform(Basis::from_scale(Vector3(extents, extents, extents)));
 
 	p_gizmo->clear();
-	p_gizmo->add_mesh(pos3d_mesh, Ref<Material>(), xform);
+
+	const Color &custom_color = marker->get_gizmo_color();
+	const float opacity = marker->get_gizmo_opacity();
+	const bool use_default_color = custom_color == Color(1, 1, 1, 1) && Math::is_equal_approx(opacity, 1.0f);
+
+	if (use_default_color) {
+		p_gizmo->add_mesh(pos3d_mesh, Ref<Material>(), xform);
+	} else {
+		// Generate per-marker lines with custom color and opacity.
+		Vector<Vector3> cursor_points;
+		Vector<Color> cursor_colors;
+		const float cs = 1.0;
+
+		cursor_points.push_back(Vector3(+cs, 0, 0));
+		cursor_points.push_back(Vector3());
+		cursor_points.push_back(Vector3());
+		cursor_points.push_back(Vector3(-cs, 0, 0));
+
+		cursor_points.push_back(Vector3(0, +cs, 0));
+		cursor_points.push_back(Vector3());
+		cursor_points.push_back(Vector3());
+		cursor_points.push_back(Vector3(0, -cs, 0));
+
+		cursor_points.push_back(Vector3(0, 0, +cs));
+		cursor_points.push_back(Vector3());
+		cursor_points.push_back(Vector3());
+		cursor_points.push_back(Vector3(0, 0, -cs));
+
+		Color positive_color = custom_color;
+		positive_color.a = opacity;
+		Color negative_color = custom_color.darkened(0.5);
+		negative_color.a = opacity;
+
+		// 4 colors per axis: +bright, +bright, -dark, -dark
+		for (int i = 0; i < 3; i++) {
+			cursor_colors.push_back(positive_color);
+			cursor_colors.push_back(positive_color);
+			cursor_colors.push_back(negative_color);
+			cursor_colors.push_back(negative_color);
+		}
+
+		Ref<StandardMaterial3D> mat = memnew(StandardMaterial3D);
+		mat->set_shading_mode(StandardMaterial3D::SHADING_MODE_UNSHADED);
+		mat->set_flag(StandardMaterial3D::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
+		mat->set_flag(StandardMaterial3D::FLAG_SRGB_VERTEX_COLOR, true);
+		mat->set_flag(StandardMaterial3D::FLAG_DISABLE_FOG, true);
+		mat->set_transparency(StandardMaterial3D::TRANSPARENCY_ALPHA);
+
+		Array d;
+		d.resize(RSE::ARRAY_MAX);
+		d[Mesh::ARRAY_VERTEX] = cursor_points;
+		d[Mesh::ARRAY_COLOR] = cursor_colors;
+
+		Ref<ArrayMesh> custom_mesh;
+		custom_mesh.instantiate();
+		custom_mesh->add_surface_from_arrays(Mesh::PRIMITIVE_LINES, d);
+		custom_mesh->surface_set_material(0, mat);
+
+		p_gizmo->add_mesh(custom_mesh, Ref<Material>(), xform);
+	}
 
 	const Vector<Vector3> points = {
 		Vector3(-extents, 0, 0),
